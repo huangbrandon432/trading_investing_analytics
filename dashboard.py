@@ -34,10 +34,18 @@ def d(event):
     af.get_options_chain(text3.value)
 
 
+button4 = pn.widgets.Button(name='Top Shorted Stocks', button_type='primary')
+def e(event):
+    af.get_top_shorted_stocks()
+
+
+
 button.on_click(b)
 button2.on_click(c)
 button3.on_click(d)
-dash = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3)
+button4.on_click(e)
+dash = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4)
+dash
 
-
-dash.show()
+tabs = pn.Tabs(('Get Info', dash))
+tabs.show()
