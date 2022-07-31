@@ -104,7 +104,7 @@ class Positions:
         except:
             pass
 
-            
+
         try:
             print()
             printmd('**Options:**')
@@ -160,7 +160,7 @@ class StocksCrypto:
         r.export.export_completed_stock_orders(dir_path = './', file_name = name_of_file)
 
         self.stock_orders_df = pd.read_csv(name_of_file)
-        self.stock_orders_df['date'] = self.stock_orders_df['date'].replace('T(.*)', '', regex=True)
+        self.stock_orders_df['date'] = self.stock_orders_df['date'].replace('T(.*)', '', getregex=True)
         self.stock_orders_df['date'] = pd.to_datetime(self.stock_orders_df['date'], format = '%Y-%m-%d')
 
         self.stock_orders_df = self.stock_orders_df.iloc[::-1].reset_index(drop=True)

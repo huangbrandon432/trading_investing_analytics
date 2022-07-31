@@ -40,6 +40,307 @@ def get_top_shorted_stocks():
     webbrowser.open_new_tab(short_interest_stocks_link)
 
 
+
+
+def preprocess_rh_stock_orders(file):
+
+
+    stock_orders_df = pd.read_csv(file)
+    stock_orders_df['date'] = stock_orders_df['date'].replace('T(.*)', '', regex=True)
+    stock_orders_df['date'] = pd.to_datetime(stock_orders_df['date'], format = '%Y-%m-%d')
+
+    stock_orders_df = stock_orders_df.iloc[::-1].reset_index(drop=True)
+
+
+    #accounting for stock splits
+    for i in range(len(stock_orders_df)):
+
+        transac_date = stock_orders_df.loc[i, 'date']
+        symbol = stock_orders_df.loc[i, 'symbol']
+
+        if symbol == 'SOXL' and  transac_date < pd.to_datetime('2021-03-02'):
+            stock_orders_df.loc[i, 'average_price'] /= 15
+            stock_orders_df.loc[i, 'quantity'] *= 15
+
+        if symbol == 'TECL' and transac_date < pd.to_datetime('2021-03-02'):
+            stock_orders_df.loc[i, 'average_price'] /= 10
+            stock_orders_df.loc[i, 'quantity'] *= 10
+
+        if symbol == 'AAPL' and transac_date < pd.to_datetime('2020-08-28'):
+            stock_orders_df.loc[i, 'average_price'] /= 4
+            stock_orders_df.loc[i, 'quantity'] *= 4
+
+        if symbol == 'TSLA' and transac_date < pd.to_datetime('2020-08-31'):
+            stock_orders_df.loc[i, 'average_price'] /= 5
+            stock_orders_df.loc[i, 'quantity'] *= 5
+
+
+    stock_orders_df['total'] = stock_orders_df['quantity']*stock_orders_df['average_price']
+    return stock_orders_df
+
+
+
+def examine_trades(self):
+
+    total_gain = 0
+    total_loss = 0
+    trades = []
+
+    trading_dict = {}
+    net_gain_loss = 0
+
+    for i in range(len(stock_orders_df)):
+
+        side = stock_orders_df.loc[i, 'side']
+        symbol = stock_orders_df.loc[i, 'symbol']
+        date = stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
+        quantity = stock_orders_df.loc[i, 'quantity']
+        avg_price = stock_orders_df.loc[i, 'average_price']
+        total = round(stock_orders_df.loc[i, 'total'],2)
+
+
+        if side == 'buy':
+
+            if symbol+'_avgprice' in trading_dict:
+                cur_total = trading_dict[symbol+'_quantity']*trading_dict[symbol+'_avgprice']
+                new_total = cur_total + quantity * avg_price
+                trading_dict[symbol+'_quantity'] += quantity
+                trading_dict[symbol+'_avgprice'] = new_total/trading_dict[symbol+'_quantity']
+
+            else:
+                trading_dict[symbol+'_avgprice'] = avg_price
+                trading_dict[symbol+'_quantity'] = quantity
+
+
+            cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
+            cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+
+            trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
+
+
+
+        #if sell
+        if side == 'sell':
+
+            if symbol+'_avgprice' in trading_dict:
+
+
+                gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
+                perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
+
+
+                if gain >= 0:
+                    total_gain += gain
+
+                else:
+                    total_loss += gain
+
+
+                trading_dict[symbol+'_quantity'] -= quantity
+
+                net_gain_loss = round(total_gain + total_loss,2)
+                cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
+                cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+
+                trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
+
+
+
+                #if holding = 0, pop symbol avgprice and quantity
+                if trading_dict[symbol+'_quantity'] == 0:
+                    trading_dict.pop(symbol+'_avgprice')
+                    trading_dict.pop(symbol+'_quantity')
+
+            else:
+
+                gain = round(avg_price * quantity,2)
+                total_gain += gain
+
+                net_gain_loss = round(total_gain + total_loss,2)
+
+                trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), None, None, total, gain, str(0) + '%', net_gain_loss, 'Yes'])
+
+
+    trades_df = pd.DataFrame(trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss', 'Free/Acquired Stock'])
+
+    gains_df = trades_df[(trades_df['Gain'] >= 0) & (trades_df['Side'] == 'sell')].sort_values('Gain', ascending = False).reset_index(drop=True)
+    losses_df = trades_df[(trades_df['Gain'] < 0) & (trades_df['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
+
+
+class Stocks:
+    def __init__(self, stock_orders_df):
+
+        self.stock_orders_df = stock_orders_df
+
+    def examine_trades(self):
+
+        self.total_gain = 0
+        self.total_loss = 0
+        self.trades = []
+
+        trading_dict = {}
+        net_gain_loss = 0
+
+        for i in range(len(self.stock_orders_df)):
+
+            side = self.stock_orders_df.loc[i, 'side']
+            symbol = self.stock_orders_df.loc[i, 'symbol']
+            date = self.stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
+            quantity = self.stock_orders_df.loc[i, 'quantity']
+            avg_price = self.stock_orders_df.loc[i, 'average_price']
+            total = round(self.stock_orders_df.loc[i, 'total'],2)
+
+
+            if side == 'buy':
+
+                if symbol+'_avgprice' in trading_dict:
+                    cur_total = trading_dict[symbol+'_quantity']*trading_dict[symbol+'_avgprice']
+                    new_total = cur_total + quantity * avg_price
+                    trading_dict[symbol+'_quantity'] += quantity
+                    trading_dict[symbol+'_avgprice'] = new_total/trading_dict[symbol+'_quantity']
+
+                else:
+                    trading_dict[symbol+'_avgprice'] = avg_price
+                    trading_dict[symbol+'_quantity'] = quantity
+
+
+                cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
+                cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+
+                self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
+
+
+
+            #if sell
+            if side == 'sell':
+
+                if symbol+'_avgprice' in trading_dict:
+
+
+                    gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
+                    perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
+
+
+                    if gain >= 0:
+                        self.total_gain += gain
+
+                    else:
+                        self.total_loss += gain
+
+
+                    trading_dict[symbol+'_quantity'] -= quantity
+
+                    net_gain_loss = round(self.total_gain + self.total_loss,2)
+                    cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
+                    cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+
+                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
+
+
+
+                    #if holding = 0, pop symbol avgprice and quantity
+                    if trading_dict[symbol+'_quantity'] == 0:
+                        trading_dict.pop(symbol+'_avgprice')
+                        trading_dict.pop(symbol+'_quantity')
+
+                else:
+
+                    gain = round(avg_price * quantity,2)
+                    self.total_gain += gain
+
+                    net_gain_loss = round(self.total_gain + self.total_loss,2)
+
+                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), None, None, total, gain, str(0) + '%', net_gain_loss, 'Yes'])
+
+
+        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss', 'Free/Acquired Stock'])
+
+        self.gains_df = self.trades_df[(self.trades_df['Gain'] >= 0) & (self.trades_df['Side'] == 'sell')].sort_values('Gain', ascending = False).reset_index(drop=True)
+        self.losses_df = self.trades_df[(self.trades_df['Gain'] < 0) & (self.trades_df['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
+
+
+
+    def add_price_diff(self):
+        time_start = time.time()
+
+        if self.crypto == 'no':
+
+            stocks_sold = list(set(self.trades_df[self.trades_df['Side'] == 'sell']['Symbol']))
+
+            ticker_cur_price = []
+
+            for i in stocks_sold:
+                try:
+                    ticker = yf.Ticker(i)
+                    close = round(ticker.history(period = "1d").reset_index(drop=True).loc[0, 'Close'],2)
+
+                    ticker_cur_price.append((i, close, 'sell'))
+
+                except:
+                    pass
+
+            ticker_cur_price = pd.DataFrame(ticker_cur_price, columns =['Symbol', 'Current Price', 'Side'])
+
+
+            self.trades_df_with_price_diff = self.trades_df.merge(ticker_cur_price, how = 'left', on = ['Symbol', 'Side'])
+
+            for i in range(len(self.trades_df_with_price_diff)):
+
+                transac_date = pd.to_datetime(self.trades_df_with_price_diff.loc[i, 'Date'])
+                symbol = self.trades_df_with_price_diff.loc[i, 'Symbol']
+
+                if symbol == 'SOXL' and transac_date < pd.to_datetime('2021-03-02'):
+                    self.trades_df_with_price_diff.loc[i, 'Current Price'] *= 15
+
+                if symbol == 'TECL' and transac_date < pd.to_datetime('2021-03-02'):
+                    self.trades_df_with_price_diff.loc[i, 'Current Price'] *= 10
+
+                if symbol == 'AAPL' and transac_date < pd.to_datetime('2020-08-28'):
+                    self.trades_df_with_price_diff.loc[i, 'Current Price'] *= 4
+
+                if symbol == 'TSLA' and transac_date < pd.to_datetime('2020-08-31'):
+                    self.trades_df_with_price_diff.loc[i, 'Current Price'] *= 5
+
+        else:
+            crypto_sold = list(set(self.trades_df[self.trades_df['Side'] == 'sell']['Symbol']))
+
+            crypto_cur_price = []
+
+            for i in crypto_sold:
+                try:
+                    crypto_market_price = float(r.crypto.get_crypto_quote(i, info='mark_price'))
+
+                    crypto_cur_price.append((i, crypto_market_price, 'sell'))
+
+                except:
+                    pass
+
+            crypto_cur_price = pd.DataFrame(crypto_cur_price, columns =['Symbol', 'Current Price', 'Side'])
+
+
+            self.trades_df_with_price_diff = self.trades_df.merge(crypto_cur_price, how = 'left', on = ['Symbol', 'Side'])
+
+
+
+        self.trades_df_with_price_diff['Price Sold & Curr Price % Diff'] = round((self.trades_df_with_price_diff['Current Price'] - self.trades_df_with_price_diff["Avg_Price"])/self.trades_df_with_price_diff["Avg_Price"] * 100, 2)
+        self.trades_df_with_price_diff['Avg Cost & Curr Price % Diff'] = round((self.trades_df_with_price_diff['Current Price'] - self.trades_df_with_price_diff["Cur_Avg_Cost"])/self.trades_df_with_price_diff["Cur_Avg_Cost"] * 100, 2)
+
+        self.trades_df_with_price_diff['Current Price'].fillna('', inplace=True)
+        self.trades_df_with_price_diff['Price Sold & Curr Price % Diff'].fillna('', inplace=True)
+        self.trades_df_with_price_diff['Avg Cost & Curr Price % Diff'].fillna('', inplace=True)
+
+        self.trades_df_with_price_diff['Price Sold & Curr Price % Diff'] = self.trades_df_with_price_diff['Price Sold & Curr Price % Diff'].apply(lambda x: str(x) + '%' if x != '' else '')
+        self.trades_df_with_price_diff['Avg Cost & Curr Price % Diff'] = self.trades_df_with_price_diff['Avg Cost & Curr Price % Diff'].apply(lambda x: str(x) + '%' if x != '' else '')
+
+
+
+        self.gains_df_with_price_diff = self.trades_df_with_price_diff[(self.trades_df_with_price_diff['Gain'] >= 0) & (self.trades_df_with_price_diff['Side'] == 'sell')].sort_values('Gain', ascending = False).reset_index(drop=True)
+        self.losses_df_with_price_diff = self.trades_df_with_price_diff[(self.trades_df_with_price_diff['Gain'] < 0) & (self.trades_df_with_price_diff['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
+
+        print()
+        time_end = time.time()
+        print('Total runtime: ', round(time_end - time_start,2) , 's')
+
 class Watchlists:
 
     def __init__(self):

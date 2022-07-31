@@ -87,6 +87,149 @@ def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_
 
     return fig
 
+
+
+def candlestick_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_days = 7):
+    ticker_obj = yf.Ticker(ticker)
+    ticker_hist = ticker_obj.history(period = 'max')
+
+
+    if start and end:
+        start_date, end_date = start, end
+    else:
+        start_date, end_date = ticker_hist.index[0], ticker_hist.index[-1]
+
+
+    frame = ticker_hist.loc[start_date:end_date]
+    closing_prices = frame['Close']
+    open_prices = frame['Open']
+    high_prices = frame['High']
+    low_prices = frame['Low']
+    volume = frame['Volume']
+
+    fig2 = go.Figure(data=[go.Candlestick(
+        x=closing_prices.index,
+        open=open_prices, high=high_prices,
+        low=low_prices, close=closing_prices,
+        increasing_line_color= 'green', decreasing_line_color= 'red', name = 'Candles'
+    )])
+
+    if moving_avg == 'yes':
+        closing_prices_ma = frame['Close'].rolling(moving_avg_days).mean()
+        fig2.add_trace(go.Scatter(x = closing_prices_ma.index, y = closing_prices_ma, mode = 'lines', name = str(moving_avg_days)+'D Close Moving Average'))
+
+    fig2.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
+    fig2.update_yaxes(title_text="Price")
+
+    fig2.update_layout(title=ticker, height = 700,width = 1400,
+            xaxis=dict(
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=7,
+                             label="1w",
+                             step="day",
+                             stepmode="backward"),
+                        dict(count=1,
+                             label="1m",
+                             step="month",
+                             stepmode="backward"),
+                        dict(count=3,
+                             label="3m",
+                             step="month",
+                             stepmode="backward"),
+                        dict(count=6,
+                             label="6m",
+                             step="month",
+                             stepmode="backward"),
+                        dict(count=1,
+                             label="YTD",
+                             step="year",
+                             stepmode="todate"),
+                        dict(count=1,
+                             label="1y",
+                             step="year",
+                             stepmode="backward"),
+                        dict(step="all")
+                    ])
+                ),
+                type="date"
+            )
+        )
+
+    return fig2
+
+
+def print_stock_summary(ticker):
+    ticker_obj = yf.Ticker(ticker)
+    try:
+        ticker_info = ticker_obj.info
+
+        return 'Business Summary: ' + ticker_info['longBusinessSummary']
+    except:
+        pass
+
+
+def print_stock_info(ticker):
+    ticker_obj = yf.Ticker(ticker)
+
+    try:
+        ticker_info = ticker_obj.info
+
+
+        market_cap = str(round(ticker_info['marketCap']/1000000000,2)) + 'B'
+        longname = ticker_info['longName']
+        sector = ticker_info['sector']
+        industry = ticker_info['industry']
+        country = ticker_info['country']
+        avg10d_vol = str(round(ticker_info['averageDailyVolume10Day']/1000000,2)) + 'M'
+        most_recent_vol = str(round(ticker_info['volume']/1000000,2)) + 'M'
+
+
+        try:
+            beta = round(ticker_info['beta'],2)
+        except:
+            beta = ticker_info['beta']
+
+        try:
+            ps_trailing_12mo = round(ticker_info['priceToSalesTrailing12Months'],2)
+        except:
+            ps_trailing_12mo = ticker_info['priceToSalesTrailing12Months']
+
+        try:
+            forwardpe = round(ticker_info['forwardPE'],2)
+        except:
+            forwardpe = ticker_info['forwardPE']
+
+        pegratio = ticker_info['pegRatio']
+        forwardeps = ticker_info['forwardEps']
+        trailingeps = ticker_info['trailingEps']
+        shares_outstanding = str(round(ticker_info['sharesOutstanding']/1000000,2)) + 'M'
+        shares_short = str(round(ticker_info['sharesShort']/1000000,2)) + 'M'
+        shares_short_perc_outstanding = str(round(ticker_info['sharesPercentSharesOut']*100,2)) + '%'
+        floatshares = str(round(ticker_info['floatShares']/1000000,2)) + 'M'
+
+        try:
+            short_perc_float = str(round(ticker_info['shortPercentOfFloat']*100,2)) + '%'
+        except:
+            short_perc_float = ticker_info['shortPercentOfFloat']
+
+        perc_institutions = str(round(ticker_info['heldPercentInstitutions']*100,2)) + '%'
+        perc_insiders = str(round(ticker_info['heldPercentInsiders']*100,2)) + '%'
+
+        stock_info = [market_cap, longname, sector, industry, country, beta, most_recent_vol, avg10d_vol, ps_trailing_12mo, forwardpe, pegratio, forwardeps, trailingeps,
+                        shares_outstanding, perc_institutions, perc_insiders, shares_short, shares_short_perc_outstanding, floatshares, short_perc_float]
+
+        stock_info_df = pd.DataFrame(stock_info, index = ['Market Cap', 'Name', 'Sector', 'Industry', 'Country', 'Beta', 'Day Volume (Most recent)',
+                                                            'Avg 10D Volume', 'P/S Trailing 12mo', 'Forward P/E', 'PEG Ratio', 'Forward EPS',
+                                                            'Trailing EPS', 'Shares Outstanding', 'Institutions % of Oustanding',
+                                                            'Insiders % of Oustanding', 'Shares Short (Prev Mo)', 'Short % of Outstanding (Prev Mo)',
+                                                             'Shares Float', 'Short % of Float (Prev Mo)'], columns = ['Info'])
+
+        return stock_info_df
+
+    except:
+        pass
+
 def plot_and_get_info(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_days = 7):
 
     ticker_obj = yf.Ticker(ticker)
@@ -335,7 +478,7 @@ def plot_and_get_info(ticker, start = None, end = None, moving_avg = 'yes', movi
 
 
 
-def compare_charts(tickers = [], start = None, end = None, ma = 'yes'):
+def compare_charts(tickers = [], start = None, end = None):
 
     if len(tickers) <= 1:
         raise Exception("Please enter at least two tickers to compare")
@@ -383,9 +526,6 @@ def compare_charts(tickers = [], start = None, end = None, ma = 'yes'):
 
         fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = ticker + ' Norm Close'))
 
-        if ma == 'yes':
-            closing_prices_ma = frame['Norm Close'].rolling(7).mean()
-            fig.add_trace(go.Scatter(x = closing_prices_ma.index, y = closing_prices_ma, mode = 'lines', name = ticker + '7D Close Moving Average'))
 
 
     fig.update_layout(title = ', '.join(tickers) + ' Comparison', yaxis_title = 'Norm Price')
