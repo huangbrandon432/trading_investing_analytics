@@ -659,4 +659,4 @@ def plot_buysell_points(ticker, tradesdf, crypto = 'no'):
     fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
 
 
-    fig.show()
+    return fig

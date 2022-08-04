@@ -368,13 +368,9 @@ class StocksCrypto:
         self.gains_df_with_price_diff = self.trades_df_with_price_diff[(self.trades_df_with_price_diff['Gain'] >= 0) & (self.trades_df_with_price_diff['Side'] == 'sell')].sort_values('Gain', ascending = False).reset_index(drop=True)
         self.losses_df_with_price_diff = self.trades_df_with_price_diff[(self.trades_df_with_price_diff['Gain'] < 0) & (self.trades_df_with_price_diff['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
 
-        print()
-        time_end = time.time()
-        print('Total runtime: ', round(time_end - time_start,2) , 's')
 
 
     def add_hold_time(self):
-        time_start = time.time()
 
         self.trades_df_with_price_diff['Days Held'] = None
 
