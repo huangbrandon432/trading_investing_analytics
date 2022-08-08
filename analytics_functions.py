@@ -40,9 +40,13 @@ def get_top_shorted_stocks():
     webbrowser.open_new_tab(short_interest_stocks_link)
 
 
+stock_splits_dict = {'SOXL': {'split_date': '2021-03-02', 'factor': 15},
+                    'TECL': {'split_date': '2021-03-02', 'factor': 10},
+                    'AAPL': {'split_date': '2020-08-28', 'factor': 4},
+                    'TSLA': {'split_date': '2020-08-31', 'factor': 5},
+                    'AMZN': {'split_date': '2022-06-06', 'factor': 20}}
 
-
-def preprocess_rh_stock_orders(file):
+def preprocess_rh_stock_orders(file, stock_splits_dict = stock_splits_dict):
 
 
     stock_orders_df = pd.read_csv(file)
@@ -58,21 +62,9 @@ def preprocess_rh_stock_orders(file):
         transac_date = stock_orders_df.loc[i, 'date']
         symbol = stock_orders_df.loc[i, 'symbol']
 
-        if symbol == 'SOXL' and  transac_date < pd.to_datetime('2021-03-02'):
-            stock_orders_df.loc[i, 'average_price'] /= 15
-            stock_orders_df.loc[i, 'quantity'] *= 15
-
-        if symbol == 'TECL' and transac_date < pd.to_datetime('2021-03-02'):
-            stock_orders_df.loc[i, 'average_price'] /= 10
-            stock_orders_df.loc[i, 'quantity'] *= 10
-
-        if symbol == 'AAPL' and transac_date < pd.to_datetime('2020-08-28'):
-            stock_orders_df.loc[i, 'average_price'] /= 4
-            stock_orders_df.loc[i, 'quantity'] *= 4
-
-        if symbol == 'TSLA' and transac_date < pd.to_datetime('2020-08-31'):
-            stock_orders_df.loc[i, 'average_price'] /= 5
-            stock_orders_df.loc[i, 'quantity'] *= 5
+        if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
+            stock_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
+            stock_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
 
 
     stock_orders_df['total'] = stock_orders_df['quantity']*stock_orders_df['average_price']

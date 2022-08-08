@@ -10,13 +10,21 @@ import plotly.graph_objects as go
 import plotly.express as px
 import matplotlib.pyplot as plt
 import importlib
+import bokeh
 import param
+import io
 importlib.reload(am)
 importlib.reload(tg)
 importlib.reload(af)
 
+raw_css = """
+.bk-root .bk-tabs-header.bk-above .bk-headers, .bk-root .bk-tabs-header.bk-below .bk-headers{
+font-size:16px;
+}
+"""
 
-pn.extension('plotly')
+
+pn.extension('plotly', raw_css=[raw_css])
 
 button = pn.widgets.Button(name='Get Ticker Stats and Financials', button_type='primary')
 text = pn.widgets.TextInput(name = 'Ticker', value='TSLA')
@@ -45,13 +53,12 @@ button.on_click(b)
 button2.on_click(c)
 button3.on_click(d)
 button4.on_click(e)
-dash = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4)
+actions = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4, name = 'Get Info')
 
 
 
-# plotly_pane = pn.panel(tg.line_chart('ETH-USD', start = '2021-5-1', end = '2021-12-31', moving_avg = 'no', moving_avg_days = 7), name = 'Line Chart')
 
-class LineChart(param.Parameterized):
+class Charts(param.Parameterized):
 
     ticker = param.String(default="TSLA", doc="Ticker symbol")
 
@@ -64,14 +71,132 @@ class LineChart(param.Parameterized):
     moving_average_days = param.Integer(10, bounds=(1, 365))
 
     @param.depends('ticker', 'start_date', 'end_date', 'moving_average', 'moving_average_days')
-    def view(self):
+    def linechart(self):
         return pn.panel(tg.line_chart(self.ticker, start = self.start_date, end = self.end_date, moving_avg = self.moving_average, moving_avg_days = self.moving_average_days))
 
-line_chart = LineChart(name='Line Chart')
-
-charts = pn.Column(line_chart.param, line_chart.view, name = 'Charts')
-
-tabs = pn.Tabs(('Get Info', dash), charts)
+    def candlestick(self):
+        return pn.panel(tg.candlestick_chart(self.ticker, start = self.start_date, end = self.end_date, moving_avg = self.moving_average, moving_avg_days = self.moving_average_days))
 
 
+charts_class = Charts(name='Line, Candlestick Charts, and Info')
+
+charts_and_info = pn.Column(charts_class.param, charts_class.linechart, charts_class.candlestick, name = 'Charts and Info')
+
+
+
+class Analyze_trades(param.Parameterized):
+
+
+    file_input = param.Parameter()
+    data = param.DataFrame()
+
+    def __init__(self, **params):
+        super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
+        self.df_pane = pn.pane.DataFrame(width=1000, max_rows = 10)
+        self.df_pane2 = pn.pane.DataFrame(width=1000, max_rows = 10)
+        self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
+        self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
+
+    @param.depends("file_input.value", watch=True)
+    def parse_file_input(self):
+        value = self.file_input.value
+        if value:
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_rh_stock_orders(string_io)
+
+        else:
+            print("error")
+
+    @param.depends('data', watch=True)
+    def get_df(self):
+        self.df_pane.object = self.data
+
+        trades = af.Stocks(self.data)
+        trades.examine_trades()
+
+        self.df_pane2.object = trades.trades_df
+        self.total_gain.value = round(trades.total_gain)
+        self.total_loss.value = round(trades.total_loss)
+
+    def view(self):
+        return pn.Column(
+            "## Upload and process data",
+
+            self.file_input,
+            pn.layout.Divider(),
+            self.total_gain,
+            self.total_loss,
+            self.df_pane,
+            pn.Spacer(height = 500),
+            self.df_pane2,
+            name = "Analyze Trades"
+        )
+
+analyze_trades_view = Analyze_trades().view()
+
+
+
+class ExamineCharts(param.Parameterized):
+
+    file_input = param.Parameter()
+    select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
+    data = param.DataFrame()
+    chart = pn.pane.Plotly()
+    chart2 = pn.pane.Plotly()
+    start_date_input = pn.widgets.TextInput(name='Optional Start Date', placeholder='Enter start date (optional)')
+    end_date_input = pn.widgets.TextInput(name='Optional End Date', placeholder='Enter end date (optional)')
+
+    def __init__(self, **params):
+        super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
+
+
+    @param.depends("file_input.value", watch=True)
+    def parse_file_input(self):
+        value = self.file_input.value
+        if value:
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_rh_stock_orders(string_io)
+
+        else:
+            print("error")
+
+    @param.depends('data', watch = True)
+    def refresh_symbols(self):
+        self.select_stock.options = sorted(list(self.data.symbol.unique()))
+
+
+    @param.depends('data', 'select_stock.value', 'start_date_input.value', 'end_date_input.value', watch = True)
+    def plotting(self):
+        trades = af.Stocks(self.data)
+        trades.examine_trades()
+
+        if self.select_stock.value:
+            self.chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
+                                                      end_date= self.end_date_input.value)
+
+            self.chart2.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
+                                                      end_date= self.end_date_input.value)
+        else:
+            print('select stock')
+
+
+    def view(self):
+        return pn.Column(
+            "## Examine Charts",
+            self.file_input,
+            self.select_stock,
+            self.start_date_input,
+            self.end_date_input,
+            pn.layout.Divider(),
+            self.chart2,
+            pn.Spacer(height = 150),
+            self.chart,
+            name = "Examine Charts"
+        )
+
+examine_charts_view = ExamineCharts().view()
+
+
+
+tabs = pn.Tabs(actions, charts_and_info, analyze_trades_view, examine_charts_view)
 tabs.show()
