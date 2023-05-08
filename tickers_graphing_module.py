@@ -663,7 +663,7 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
 
             fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
                                ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}')
+                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
         if side == 'sell':
 
@@ -746,7 +746,7 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
             fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
                                ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}')
+                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
         if side == 'sell':
 
@@ -758,7 +758,7 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
             fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
                                ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+                               hovertext = f'SH, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
 
     fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)

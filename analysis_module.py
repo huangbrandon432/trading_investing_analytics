@@ -1,4 +1,3 @@
-
 import time
 import robin_stocks.robinhood as r
 import pandas as pd
@@ -153,6 +152,7 @@ class StocksCrypto:
 
         self.crypto = crypto
 
+    #deprecating
     def get_and_preprocess_rh_orders(self, name_of_file = 'My_stocks_orders.csv'):
         time_start = time.time()
 
@@ -194,11 +194,7 @@ class StocksCrypto:
         self.buyorders = self.stock_orders_df[self.stock_orders_df['side'] == 'buy']
         self.sellorders = self.stock_orders_df[self.stock_orders_df['side'] == 'sell']
 
-
-        print()
-        time_end = time.time()
-        print('Total runtime: ', round(time_end - time_start,2) , 's')
-
+    #deprecating
     def examine_trades(self):
         time_start = time.time()
 
@@ -440,11 +436,6 @@ class StocksCrypto:
                         elif symbols[symbol][0][1] > 0:
 
                             self.trades_df_with_price_diff.loc[i, 'Days Held'] = round(first_in_queue_weight_times_holdtime + (first_in_queue_quantity - symbols[symbol][0][1])/quantity * hold_time,2)
-
-
-        print()
-        time_end = time.time()
-        print('Total runtime: ', round(time_end - time_start,2) , 's')
 
 ###Options#########################################################################################################################################
 

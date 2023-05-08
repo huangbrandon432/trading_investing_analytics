@@ -619,7 +619,7 @@ def filter_stocks_by_movement(watchlist_names = [], period = '1mo', point_of_ref
 
 
 def get_stock_movements(tickers = [], period = '1mo', point_of_reference_days = -10):
-    #valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
+    #valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max  
     scanned_symbols = []
     printed_dates = 0
 
