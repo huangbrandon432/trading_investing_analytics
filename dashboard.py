@@ -53,7 +53,7 @@ button.on_click(b)
 button2.on_click(c)
 button3.on_click(d)
 button4.on_click(e)
-actions = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4, name = 'Get Info')
+get_stock_info = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4, name = 'Get Stock Info')
 
 
 
@@ -80,7 +80,7 @@ class Charts(param.Parameterized):
 
 charts_class = Charts(name='Line, Candlestick Charts, and Info')
 
-charts_and_info = pn.Column(charts_class.param, charts_class.linechart, charts_class.candlestick, name = 'Charts and Info')
+stock_charts = pn.Column(charts_class.param, charts_class.linechart, charts_class.candlestick, name = 'Stock Charts')
 
 
 
@@ -140,7 +140,7 @@ class ExamineCharts(param.Parameterized):
 
     file_input = param.Parameter()
     select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
-    select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood'])
+    select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
     data = param.DataFrame()
     chart = pn.pane.Plotly()
     chart2 = pn.pane.Plotly()
@@ -161,7 +161,9 @@ class ExamineCharts(param.Parameterized):
         if value and brokerage == 'Webull':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_wb_orders(string_io)
-
+        if value and brokerage == 'Charles Schwab':
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_wb_orders(string_io)
         else:
             print("error")
 
@@ -177,10 +179,10 @@ class ExamineCharts(param.Parameterized):
 
         if self.select_stock.value:
             self.chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                      end_date= self.end_date_input.value)
+                                                    end_date= self.end_date_input.value)
 
             self.chart2.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                      end_date= self.end_date_input.value)
+                                                    end_date= self.end_date_input.value)
         else:
             print('select stock')
 
@@ -204,5 +206,5 @@ examine_charts_view = ExamineCharts().view()
 
 
 
-tabs = pn.Tabs(actions, charts_and_info, analyze_trades_view, examine_charts_view)
+tabs = pn.Tabs(get_stock_info, stock_charts, analyze_trades_view, examine_charts_view)
 tabs.show()
