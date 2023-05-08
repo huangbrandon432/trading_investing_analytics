@@ -140,6 +140,7 @@ class ExamineCharts(param.Parameterized):
 
     file_input = param.Parameter()
     select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
+    select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood'])
     data = param.DataFrame()
     chart = pn.pane.Plotly()
     chart2 = pn.pane.Plotly()
@@ -150,12 +151,16 @@ class ExamineCharts(param.Parameterized):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
 
 
-    @param.depends("file_input.value", watch=True)
+    @param.depends("file_input.value", 'select_brokerage.value', watch=True)
     def parse_file_input(self):
         value = self.file_input.value
-        if value:
+        brokerage = self.select_brokerage.value
+        if value and brokerage == 'Robinhood':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_rh_stock_orders(string_io)
+        if value and brokerage == 'Webull':
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_wb_orders(string_io)
 
         else:
             print("error")
@@ -183,6 +188,7 @@ class ExamineCharts(param.Parameterized):
     def view(self):
         return pn.Column(
             "## Examine Charts",
+            self.select_brokerage,
             self.file_input,
             self.select_stock,
             self.start_date_input,

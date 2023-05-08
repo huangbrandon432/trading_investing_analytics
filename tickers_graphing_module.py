@@ -672,6 +672,11 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
                                hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
 
+        if side == 'short':
+            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
 
     fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
 
@@ -749,6 +754,11 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
                                ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
                                hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
+        if side == 'short':
+
+            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
 
 
     fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
