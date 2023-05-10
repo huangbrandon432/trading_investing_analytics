@@ -12,31 +12,23 @@ def printmd(string):
 
 
 def get_share_stats_and_financials(ticker):
-
     link = "https://finance.yahoo.com/quote/"+ticker+'/key-statistics?p='+ticker
     link2 = "https://finance.yahoo.com/quote/"+ticker+"/financials?p="+ticker
-
     webbrowser.open_new_tab(link)
     webbrowser.open_new_tab(link2)
 
 
 def swaggy_stocks():
-
     swaggy_stocks_link = "https://swaggystocks.com/dashboard/wallstreetbets/ticker-sentiment"
-
     webbrowser.open_new_tab(swaggy_stocks_link)
 
 
 def get_options_chain(ticker):
-
     options_chain_link = "https://finance.yahoo.com/quote/"+ticker+"/options/"
-
     webbrowser.open_new_tab(options_chain_link)
 
 def get_top_shorted_stocks():
-
     short_interest_stocks_link = "https://www.marketwatch.com/tools/screener/short-interest"
-
     webbrowser.open_new_tab(short_interest_stocks_link)
 
 
@@ -47,81 +39,62 @@ stock_splits_dict = {'SOXL': {'split_date': '2021-03-02', 'factor': 15},
                     'AMZN': {'split_date': '2022-06-06', 'factor': 20}}
 
 def preprocess_rh_stock_orders(file, stock_splits_dict = stock_splits_dict):
-
-
     stock_orders_df = pd.read_csv(file)
-    
     stock_orders_df['date'] = stock_orders_df['date'].replace('T(.*)', '', regex=True)
     stock_orders_df['date'] = pd.to_datetime(stock_orders_df['date'], format = '%Y-%m-%d')
-
     stock_orders_df = stock_orders_df.iloc[::-1].reset_index(drop=True)
-
 
     #accounting for stock splits
     for i in range(len(stock_orders_df)):
-
         transac_date = stock_orders_df.loc[i, 'date']
         symbol = stock_orders_df.loc[i, 'symbol']
-
         if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
             stock_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
             stock_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
-
 
     stock_orders_df['total'] = stock_orders_df['quantity']*stock_orders_df['average_price']
     return stock_orders_df
 
 
 def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict):
-    
         wb_orders_df = pd.read_csv(file)
         wb_orders_df.rename(columns={'Symbol': 'symbol', 'Side':'side', 'Total Qty':'quantity','Avg Price':'average_price', 
                                      'Filled Time':'date'}, inplace=True)
-        
         wb_orders_df = wb_orders_df[wb_orders_df['Status'] == 'Filled'].copy()
         date_format = '%m/%d/%Y %H:%M:%S %Z'
         wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())
-    
         wb_orders_df = wb_orders_df.iloc[::-1].reset_index(drop=True)
-
         wb_orders_df['side'] = wb_orders_df['side'].str.lower()
     
         for i in range(len(wb_orders_df)):
-    
             transac_date = wb_orders_df.loc[i, 'date']
-            symbol = wb_orders_df.loc[i, 'symbol']
-    
+            symbol = wb_orders_df.loc[i, 'symbol']    
             if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
                 wb_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
                 wb_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
-    
+
         wb_orders_df['total'] = wb_orders_df['quantity']*wb_orders_df['average_price']
         return wb_orders_df
     
 
 
 def preprocess_schwab_orders(file, stock_splits_dict = stock_splits_dict):
-    
         schwab_orders_df = pd.read_csv(file)
         schwab_orders_df.rename(columns={'Symbol': 'symbol', 'Action':'side', 'Quantity':'quantity','Price':'average_price', 
                                      'Date':'date'}, inplace=True)
-        
+
         schwab_orders_df = schwab_orders_df[schwab_orders_df['side'].isin(['Buy', 'Sell', 'Sell Short'])].copy()
         date_format = '%m/%d/%y'
-        schwab_orders_df['date'] = schwab_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())
-    
+        schwab_orders_df['date'] = schwab_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())    
         schwab_orders_df = schwab_orders_df.iloc[::-1].reset_index(drop=True)
         schwab_orders_df['side'] = schwab_orders_df['side'].replace('Sell Short', 'Short')
-
         schwab_orders_df['side'] = schwab_orders_df['side'].str.lower()
-
         schwab_orders_df['average_price'] = schwab_orders_df['average_price'].str.replace('$', '').str.replace(',', '').astype(float)
     
         for i in range(len(schwab_orders_df)):
-    
             transac_date = schwab_orders_df.loc[i, 'date']
             symbol = schwab_orders_df.loc[i, 'symbol']
-    
+
             if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
                 schwab_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
                 schwab_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
@@ -167,8 +140,6 @@ def examine_trades(self):
 
             trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
 
-
-
         #if sell
         if side == 'sell':
 
@@ -193,8 +164,6 @@ def examine_trades(self):
                 cur_quantity = round(trading_dict[symbol+'_quantity'],2)
 
                 trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
-
-
 
                 #if holding = 0, pop symbol avgprice and quantity
                 if trading_dict[symbol+'_quantity'] == 0:
@@ -359,7 +328,7 @@ class Stocks:
         self.losses_df = self.trades_df[(self.trades_df['Gain'] < 0) & (self.trades_df['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
 
 
-    #deprecate? don't think this is useful anymore.
+    #could still be useful. keep for now. 
     def add_price_diff(self):
         time_start = time.time()
 
@@ -441,7 +410,7 @@ class Stocks:
         time_end = time.time()
         print('Total runtime: ', round(time_end - time_start,2) , 's')
 
-class Watchlists:
+class rh_Watchlists:
 
     def __init__(self):
 
@@ -680,21 +649,3 @@ def get_stock_movements(tickers = [], period = '1mo', point_of_reference_days = 
 
 
             printmd(f'{i}: {return_perc}%')
-
-
-def create_generator(dataframe = None, date_after = '2021-01-01', date_before = None, symbols = None):
-    if date_after and not date_before:
-        generator = (i for i in dataframe[dataframe['date'] >= date_after].symbol.unique())
-
-    elif not date_after and date_before:
-        generator = (i for i in dataframe[dataframe['date'] <= date_before].symbol.unique())
-
-    elif date_after and date_before:
-        generator = (i for i in dataframe[(dataframe['date'] <= date_before) & (dataframe['date'] >= date_after)].symbol.unique())
-
-    elif symbols:
-        generator = (i for i in symbols)
-    else:
-        generator = (i for i in dataframe.symbol.unique())
-
-    return generator
