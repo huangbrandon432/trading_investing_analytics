@@ -103,88 +103,6 @@ def preprocess_schwab_orders(file, stock_splits_dict = stock_splits_dict):
         return schwab_orders_df
 
 
-def examine_trades(self):
-
-    total_gain = 0
-    total_loss = 0
-    trades = []
-
-    trading_dict = {}
-    net_gain_loss = 0
-
-    for i in range(len(stock_orders_df)):
-
-        side = stock_orders_df.loc[i, 'side']
-        symbol = stock_orders_df.loc[i, 'symbol']
-        date = stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
-        quantity = stock_orders_df.loc[i, 'quantity']
-        avg_price = stock_orders_df.loc[i, 'average_price']
-        total = round(stock_orders_df.loc[i, 'total'],2)
-
-
-        if side == 'buy':
-
-            if symbol+'_avgprice' in trading_dict:
-                cur_total = trading_dict[symbol+'_quantity']*trading_dict[symbol+'_avgprice']
-                new_total = cur_total + quantity * avg_price
-                trading_dict[symbol+'_quantity'] += quantity
-                trading_dict[symbol+'_avgprice'] = new_total/trading_dict[symbol+'_quantity']
-
-            else:
-                trading_dict[symbol+'_avgprice'] = avg_price
-                trading_dict[symbol+'_quantity'] = quantity
-
-
-            cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
-            cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-
-            trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
-
-        #if sell
-        if side == 'sell':
-
-            if symbol+'_avgprice' in trading_dict:
-
-
-                gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
-                perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
-
-
-                if gain >= 0:
-                    total_gain += gain
-
-                else:
-                    total_loss += gain
-
-
-                trading_dict[symbol+'_quantity'] -= quantity
-
-                net_gain_loss = round(total_gain + total_loss,2)
-                cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
-                cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-
-                trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
-
-                #if holding = 0, pop symbol avgprice and quantity
-                if trading_dict[symbol+'_quantity'] == 0:
-                    trading_dict.pop(symbol+'_avgprice')
-                    trading_dict.pop(symbol+'_quantity')
-
-            else:
-
-                gain = round(avg_price * quantity,2)
-                total_gain += gain
-
-                net_gain_loss = round(total_gain + total_loss,2)
-
-                trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), None, None, total, gain, str(0) + '%', net_gain_loss, 'Yes'])
-
-
-    trades_df = pd.DataFrame(trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss', 'Free/Acquired Stock'])
-
-    gains_df = trades_df[(trades_df['Gain'] >= 0) & (trades_df['Side'] == 'sell')].sort_values('Gain', ascending = False).reset_index(drop=True)
-    losses_df = trades_df[(trades_df['Gain'] < 0) & (trades_df['Side'] == 'sell')].sort_values('Gain').reset_index(drop=True)
-
 
 class Stocks:
     def __init__(self, stock_orders_df):
@@ -444,9 +362,7 @@ class rh_Watchlists:
         r.account.post_symbols_to_watchlist(inputSymbols = symbols, name = watchlist_name)
 
     def check_if_in_watchlist(self, ticker = '', watchlist = ''):
-
         symbols = [i['symbol'] for i in r.account.get_watchlist_by_name(name = watchlist, info=None)['results']]
-
         if ticker in symbols:
             print(True)
         else:
@@ -454,7 +370,6 @@ class rh_Watchlists:
 
     def get_upcoming_earnings(self, watchlists = [], days_away_threshold = 21):
         for i in watchlists:
-
             print('Watchlist: ', i)
             print()
 
@@ -462,33 +377,24 @@ class rh_Watchlists:
             watchlist = [watchlist[j]['symbol'] for j in range(len(watchlist))]
 
             for x in watchlist:
-
                 if x in ['BTC', 'LTC', 'ETH', 'DOGE', 'ETC']:
                     continue
-
                 ticker = yf.Ticker(x)
-
 
                 try:
                     events = ticker.calendar.T
-
                 except:
                     continue
 
                 if events.empty:
                     continue
-
                 if (events['Earnings Date'].iloc[0] > date.today()) and (events['Earnings Date'].iloc[0] < (date.today() + timedelta(days_away_threshold))):
-
                     #only print ticker with upcoming earnings
                     print(x)
-
                     earnings_date = events['Earnings Date'].apply(lambda x: x.strftime("%Y-%m-%d")).values
                     print('Next Earnings Date(s):', earnings_date, '*Soon*')
                     print()
 
-
-            print()
 
 
 def check_if_in_sp500(symbol = ''):
