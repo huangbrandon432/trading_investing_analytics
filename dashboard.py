@@ -87,6 +87,7 @@ stock_charts = pn.Column(charts_class.param, charts_class.linechart, charts_clas
 class Analyze_trades(param.Parameterized):
 
 
+    select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
     file_input = param.Parameter()
     data = param.DataFrame()
 
@@ -97,13 +98,19 @@ class Analyze_trades(param.Parameterized):
         self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
         self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
 
-    @param.depends("file_input.value", watch=True)
+    @param.depends("file_input.value", 'select_brokerage.value', watch=True)
     def parse_file_input(self):
         value = self.file_input.value
-        if value:
+        brokerage = self.select_brokerage.value
+        if value and brokerage == 'Robinhood':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_rh_stock_orders(string_io)
-
+        if value and brokerage == 'Webull':
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_wb_orders(string_io)
+        if value and brokerage == 'Charles Schwab':
+            string_io = io.StringIO(value.decode("utf8"))
+            self.data = af.preprocess_schwab_orders(string_io)
         else:
             print("error")
 
@@ -121,7 +128,7 @@ class Analyze_trades(param.Parameterized):
     def view(self):
         return pn.Column(
             "## Upload and process data",
-
+            self.select_brokerage,
             self.file_input,
             pn.layout.Divider(),
             self.total_gain,
@@ -163,7 +170,7 @@ class ExamineCharts(param.Parameterized):
             self.data = af.preprocess_wb_orders(string_io)
         if value and brokerage == 'Charles Schwab':
             string_io = io.StringIO(value.decode("utf8"))
-            self.data = af.preprocess_wb_orders(string_io)
+            self.data = af.preprocess_schwab_orders(string_io)
         else:
             print("error")
 
