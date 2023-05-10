@@ -146,11 +146,10 @@ class StocksCrypto:
     def __init__(self, crypto = 'no'):
 
         self.crypto = crypto
-        
+
 
 
     def add_price_diff(self):
-        time_start = time.time()
 
         if self.crypto == 'no':
 
