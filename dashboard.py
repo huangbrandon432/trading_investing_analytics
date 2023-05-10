@@ -97,6 +97,10 @@ class Analyze_trades(param.Parameterized):
         self.df_pane2 = pn.pane.DataFrame(width=1000, max_rows = 10)
         self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
         self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
+        self.wins = pn.indicators.Number(name='Wins', format='{value}', font_size = '30pt')
+        self.losses = pn.indicators.Number(name='Losses', format='{value}', font_size = '30pt')
+        self.win_loss_ratio = pn.indicators.Number(name='Win Loss Ratio', format='{value}', font_size = '30pt')
+
 
     @param.depends("file_input.value", 'select_brokerage.value', watch=True)
     def parse_file_input(self):
@@ -124,6 +128,9 @@ class Analyze_trades(param.Parameterized):
         self.df_pane2.object = trades.trades_df
         self.total_gain.value = round(trades.total_gain)
         self.total_loss.value = round(trades.total_loss)
+        self.wins.value = trades.win_count
+        self.losses.value = trades.loss_count
+        self.win_loss_ratio.value = round(trades.win_count/trades.loss_count, 2)
 
     def view(self):
         return pn.Column(
@@ -133,6 +140,9 @@ class Analyze_trades(param.Parameterized):
             pn.layout.Divider(),
             self.total_gain,
             self.total_loss,
+            self.wins,
+            self.losses,
+            self.win_loss_ratio,
             self.df_pane,
             pn.Spacer(height = 500),
             self.df_pane2,
