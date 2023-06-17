@@ -53,13 +53,19 @@ def preprocess_rh_stock_orders(file, stock_splits_dict = stock_splits_dict):
     return stock_orders_df
 
 
-def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict):
+def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval = '1d'):
         wb_orders_df = pd.read_csv(file)
         wb_orders_df.rename(columns={'Symbol': 'symbol', 'Side':'side', 'Total Qty':'quantity','Avg Price':'average_price', 
                                      'Filled Time':'date'}, inplace=True)
         wb_orders_df = wb_orders_df[wb_orders_df['Status'] == 'Filled'].copy()
+
         date_format = '%m/%d/%Y %H:%M:%S %Z'
-        wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())
+        if interval == '1d':
+            wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())
+        elif interval == '1m':
+            wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).strftime('%m/%d/%Y %H:%M'))
+
+
         wb_orders_df = wb_orders_df.iloc[::-1].reset_index(drop=True)
         wb_orders_df['side'] = wb_orders_df['side'].str.lower()
     

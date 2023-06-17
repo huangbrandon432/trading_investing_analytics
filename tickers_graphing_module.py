@@ -12,6 +12,181 @@ def printmd(string):
     display(Markdown(string))
 
 
+
+
+
+def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d'):
+
+    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
+
+    if crypto == 'yes':
+        ticker += '-USD'
+
+    ticker_obj = yf.Ticker(ticker)
+    if interval == '1d':
+        ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index()
+
+
+    elif interval == '1m':
+        ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
+        ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
+
+
+    if len(ticker_hist) == 0:
+        return
+
+    if start_date == '' and end_date == '':
+        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
+        end_date = date.today().strftime("%Y-%m-%d")
+
+    elif start_date != '' and end_date == '':
+        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+        end_date = date.today().strftime("%Y-%m-%d")
+
+    elif start_date == '' and end_date != '':
+        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
+        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+
+    else:
+        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
+
+    frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
+    closing_prices = frame['Close']
+    open_prices = frame['Open']
+    high_prices = frame['High']
+    low_prices = frame['Low']
+    volume = frame['Volume']
+
+
+
+    fig = go.Figure(data=[go.Candlestick(
+        x=closing_prices.index,
+        open=open_prices, high=high_prices,
+        low=low_prices, close=closing_prices,
+        increasing_line_color= 'green', decreasing_line_color= 'red'
+    )])
+
+    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
+    fig.update_yaxes(title_text="Price")
+
+
+    for i in range(len(trade_history)):
+        trade_date = trade_history.loc[i, 'Date']
+        price = trade_history.loc[i, 'Avg_Price']
+        quantity = trade_history.loc[i, 'Quantity']
+        total = trade_history.loc[i, 'Total']
+        side = trade_history.loc[i, 'Side']
+        gain = trade_history.loc[i, 'Gain']
+        perc_gain = trade_history.loc[i, '% Gain']
+
+        if side == 'buy':
+
+            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
+                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
+                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+        if side == 'sell':
+
+            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+        if side == 'short':
+            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'SH, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+
+    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
+
+
+    return fig
+
+
+
+def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d'):
+
+    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
+
+    if crypto == 'yes':
+        ticker += '-USD'
+
+    ticker_obj = yf.Ticker(ticker)
+    if interval == '1d':
+        ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index()
+
+
+    elif interval == '1m':
+        ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
+        ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
+
+
+    if len(ticker_hist) == 0:
+        return
+
+    if start_date == '' and end_date == '':
+        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
+        end_date = date.today().strftime("%Y-%m-%d")
+
+    elif start_date != '' and end_date == '':
+        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+        end_date = date.today().strftime("%Y-%m-%d")
+
+    elif start_date == '' and end_date != '':
+        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
+        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+
+    else:
+        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
+        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
+        
+
+    frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
+    closing_prices = frame['Close']
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'))
+
+    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
+    fig.update_yaxes(title_text="Price")
+
+
+    for i in range(len(trade_history)):
+        trade_date = trade_history.loc[i, 'Date']
+        price = trade_history.loc[i, 'Avg_Price']
+        quantity = trade_history.loc[i, 'Quantity']
+        total = trade_history.loc[i, 'Total']
+        side = trade_history.loc[i, 'Side']
+        gain = trade_history.loc[i, 'Gain']
+        perc_gain = trade_history.loc[i, '% Gain']
+
+        if side == 'buy':
+
+            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
+                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
+                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+        if side == 'sell':
+
+            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+        if side == 'short':
+            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
+                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
+                               hovertext = f'SH, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
+
+
+    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
+
+
+    return fig
+
+
+
 def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_days = 7, interval = '1d'):
 
     ticker_obj = yf.Ticker(ticker)
@@ -364,325 +539,3 @@ def compare_charts(tickers = [], start = None, end = None):
 
 
 
-def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', end_date = ''):
-
-    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-
-    if crypto == 'yes':
-        ticker += '-USD'
-
-    ticker_obj = yf.Ticker(ticker)
-    ticker_hist = ticker_obj.history(period = 'max', debug=False)
-
-    if len(ticker_hist) == 0:
-        return
-
-    if start_date == '' and end_date == '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date != '' and end_date == '':
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date == '' and end_date != '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-
-    else:
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
-
-    frame = ticker_hist.loc[start_date:end_date]
-    closing_prices = frame['Close']
-
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'))
-
-    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
-    fig.update_yaxes(title_text="Price")
-
-
-    for i in range(len(trade_history)):
-        trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
-        quantity = trade_history.loc[i, 'Quantity']
-        total = trade_history.loc[i, 'Total']
-        side = trade_history.loc[i, 'Side']
-        gain = trade_history.loc[i, 'Gain']
-        perc_gain = trade_history.loc[i, '% Gain']
-
-        if side == 'buy':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
-                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'sell':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-        if side == 'short':
-            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
-
-
-    return fig
-
-
-
-def plot_buysell_points_line_short_interval(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1m'):
-
-    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-
-    if crypto == 'yes':
-        ticker += '-USD'
-
-    ticker_obj = yf.Ticker(ticker)
-    ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
-    ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
-
-
-    if len(ticker_hist) == 0:
-        return
-
-    if start_date == '' and end_date == '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date != '' and end_date == '':
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date == '' and end_date != '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-
-    else:
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
-
-    frame = ticker_hist.loc[start_date:end_date]
-    closing_prices = frame['Close']
-
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'))
-
-    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
-    fig.update_yaxes(title_text="Price")
-
-
-    for i in range(len(trade_history)):
-        trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
-        quantity = trade_history.loc[i, 'Quantity']
-        total = trade_history.loc[i, 'Total']
-        side = trade_history.loc[i, 'Side']
-        gain = trade_history.loc[i, 'Gain']
-        perc_gain = trade_history.loc[i, '% Gain']
-
-        if side == 'buy':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
-                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'sell':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-        if side == 'short':
-            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
-
-
-    return fig
-
-
-
-def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date = '', end_date = ''):
-
-    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-
-    if crypto == 'yes':
-        ticker += '-USD'
-
-    ticker_obj = yf.Ticker(ticker)
-    ticker_hist = ticker_obj.history(period = 'max', debug=False)
-
-    if len(ticker_hist) == 0:
-        return
-
-    if start_date == '' and end_date == '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date != '' and end_date == '':
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date == '' and end_date != '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-
-    else:
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
-
-    frame = ticker_hist.loc[start_date:end_date]
-    closing_prices = frame['Close']
-    open_prices = frame['Open']
-    high_prices = frame['High']
-    low_prices = frame['Low']
-    volume = frame['Volume']
-
-
-
-    fig = go.Figure(data=[go.Candlestick(
-        x=closing_prices.index,
-        open=open_prices, high=high_prices,
-        low=low_prices, close=closing_prices,
-        increasing_line_color= 'green', decreasing_line_color= 'red'
-    )])
-
-    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
-    fig.update_yaxes(title_text="Price")
-
-
-    for i in range(len(trade_history)):
-        trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
-        quantity = trade_history.loc[i, 'Quantity']
-        total = trade_history.loc[i, 'Total']
-        side = trade_history.loc[i, 'Side']
-        gain = trade_history.loc[i, 'Gain']
-        perc_gain = trade_history.loc[i, '% Gain']
-
-        if side == 'buy':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
-                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'sell':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'short':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'SH, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
-
-
-    return fig
-
-
-
-def plot_buysell_points_candlestick_short_interval(ticker, tradesdf, crypto = 'no', start_date = '', end_date = ''):
-
-    trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-
-    if crypto == 'yes':
-        ticker += '-USD'
-
-
-    ticker_obj = yf.Ticker(ticker)
-    ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
-    ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
-
-
-    if len(ticker_hist) == 0:
-        return
-
-    if start_date == '' and end_date == '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date != '' and end_date == '':
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = date.today().strftime("%Y-%m-%d")
-
-    elif start_date == '' and end_date != '':
-        start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-
-    else:
-        start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-        end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
-
-    frame = ticker_hist.loc[start_date:end_date]
-    closing_prices = frame['Close']
-    open_prices = frame['Open']
-    high_prices = frame['High']
-    low_prices = frame['Low']
-    volume = frame['Volume']
-
-
-
-    fig = go.Figure(data=[go.Candlestick(
-        x=closing_prices.index,
-        open=open_prices, high=high_prices,
-        low=low_prices, close=closing_prices,
-        increasing_line_color= 'green', decreasing_line_color= 'red'
-    )])
-
-    fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
-    fig.update_yaxes(title_text="Price")
-
-
-    for i in range(len(trade_history)):
-        trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
-        quantity = trade_history.loc[i, 'Quantity']
-        total = trade_history.loc[i, 'Total']
-        side = trade_history.loc[i, 'Side']
-        gain = trade_history.loc[i, 'Gain']
-        perc_gain = trade_history.loc[i, '% Gain']
-
-        if side == 'buy':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'BB', showarrow = True, arrowhead = 1,
-                               ax = -0.5, ay = -30, arrowsize = 1.5, align = 'left',
-                               hovertext = f'B, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'sell':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SS', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'S, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-        if side == 'short':
-
-            fig.add_annotation(x = trade_date, y = price, text = f'SH', showarrow = True, arrowhead = 1,
-                               ax = 20, ay = -30, arrowsize = 1.5, align = 'right',
-                               hovertext = f'SH, P: {price}, Q: {quantity}, T: {total}, D: {trade_date}, G: {gain}, %G: {perc_gain}')
-
-
-    fig.update_layout(title = ticker, yaxis_title = 'Price', height = 700, width = 1100)
-
-
-    return fig

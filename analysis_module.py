@@ -134,7 +134,7 @@ class rh_Positions:
 
 
 
-def get_positions_tickers():
+def rh_get_positions_tickers():
     holdings = r.account.build_holdings()
     tickers = list(holdings.keys())
     print('Positions:', tickers)
