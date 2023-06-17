@@ -336,13 +336,6 @@ def compare_charts(tickers = [], start = None, end = None):
 
     printmd('Given Timeframe:')
 
-    for ticker in tickers:
-
-        start_price, end_price = start_end_prices[ticker]['start_price'], start_end_prices[ticker]['end_price']
-
-        printmd(ticker + " Return: {:.2f}%".format((end_price - start_price)/start_price*100))
-
-
 
     if len(tickers) > 2:
         concat_closing_90_days = pd.concat(closing_90_days, axis = 1)
