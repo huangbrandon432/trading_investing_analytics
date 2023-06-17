@@ -6,10 +6,9 @@ import yfinance as yf
 from datetime import date, timedelta, datetime
 import datapackage
 
+
 def printmd(string):
     display(Markdown(string))
-
-
 
 def get_share_stats_and_financials(ticker):
     link = "https://finance.yahoo.com/quote/"+ticker+'/key-statistics?p='+ticker
@@ -17,11 +16,9 @@ def get_share_stats_and_financials(ticker):
     webbrowser.open_new_tab(link)
     webbrowser.open_new_tab(link2)
 
-
 def swaggy_stocks():
     swaggy_stocks_link = "https://swaggystocks.com/dashboard/wallstreetbets/ticker-sentiment"
     webbrowser.open_new_tab(swaggy_stocks_link)
-
 
 def get_options_chain(ticker):
     options_chain_link = "https://finance.yahoo.com/quote/"+ticker+"/options/"
@@ -106,11 +103,9 @@ def preprocess_schwab_orders(file, stock_splits_dict = stock_splits_dict):
 
 class Stocks:
     def __init__(self, stock_orders_df):
-
         self.stock_orders_df = stock_orders_df
 
     def examine_trades(self):
-
         self.total_gain = 0
         self.total_loss = 0
         self.trades = []
@@ -129,7 +124,6 @@ class Stocks:
             avg_price = self.stock_orders_df.loc[i, 'average_price']
             total = round(self.stock_orders_df.loc[i, 'total'],2)
 
-
             if side == 'buy':
 
                 if symbol+'_avgprice' in trading_dict and trading_dict[symbol+'_quantity'] > 0:
@@ -145,7 +139,8 @@ class Stocks:
                 
                 elif symbol+'_avgprice' in trading_dict and trading_dict[symbol+'_quantity'] < 0:
                     
-                    gain = round(-(avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
+                    gain = round(- (avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
+                    print(symbol, gain)
                     perc_gain = round(-(avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
 
                     if gain >= 0:
@@ -162,6 +157,7 @@ class Stocks:
                     net_gain_loss = round(self.total_gain + self.total_loss,2)
                     cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
                     cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+                    print(symbol, cur_quantity, cur_avg_price)
 
                     self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
 
@@ -188,6 +184,8 @@ class Stocks:
                 if symbol+'_avgprice' in trading_dict and quantity > 0:
 
                     gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
+                    
+                    print(symbol, gain)
                     perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
 
                     if gain >= 0:
@@ -236,7 +234,7 @@ class Stocks:
 
                 cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
                 cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-
+                print(symbol, cur_quantity, cur_avg_price)
                 self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
 
 
