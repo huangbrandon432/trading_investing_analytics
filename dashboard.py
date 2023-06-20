@@ -26,34 +26,34 @@ font-size:16px;
 
 pn.extension('plotly', raw_css=[raw_css])
 
-button = pn.widgets.Button(name='Get Ticker Stats and Financials', button_type='primary')
+ticker_info_button = pn.widgets.Button(name='Get Ticker Stats and Financials', button_type='primary')
 text = pn.widgets.TextInput(name = 'Ticker', value='TSLA')
 def b(event):
     af.get_share_stats_and_financials(text.value)
 
 
-button2 = pn.widgets.Button(name='Swaggy Stocks', button_type='primary')
+swaggystocks_button = pn.widgets.Button(name='Swaggy Stocks', button_type='primary')
 def c(event):
     af.swaggy_stocks()
 
 
-button3 = pn.widgets.Button(name='Get Options Chain', button_type='primary')
+options_chain_button = pn.widgets.Button(name='Get Options Chain', button_type='primary')
 text3 = pn.widgets.TextInput(name = 'Options Chain Ticker', value='TSLA')
 def d(event):
     af.get_options_chain(text3.value)
 
 
-button4 = pn.widgets.Button(name='Top Shorted Stocks', button_type='primary')
+shorted_stocks_button = pn.widgets.Button(name='Top Shorted Stocks', button_type='primary')
 def e(event):
     af.get_top_shorted_stocks()
 
 
 
-button.on_click(b)
-button2.on_click(c)
-button3.on_click(d)
-button4.on_click(e)
-get_stock_info = pn.Column(text, button, pn.Spacer(height = 5), button2, pn.Spacer(height = 5), text3, button3, pn.Spacer(height = 5), button4, name = 'Get Stock Info')
+ticker_info_button.on_click(b)
+swaggystocks_button.on_click(c)
+options_chain_button.on_click(d)
+shorted_stocks_button.on_click(e)
+get_stock_info = pn.Column(text, ticker_info_button, pn.Spacer(height = 5), swaggystocks_button, pn.Spacer(height = 5), text3, options_chain_button, pn.Spacer(height = 5), shorted_stocks_button, name = 'Get Stock Info')
 
 
 
@@ -79,7 +79,6 @@ class Charts(param.Parameterized):
 
 
 charts_class = Charts(name='Line, Candlestick Charts, and Info')
-
 stock_charts = pn.Column(charts_class.param, charts_class.linechart, charts_class.candlestick, name = 'Stock Charts')
 
 

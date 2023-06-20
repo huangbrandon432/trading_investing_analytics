@@ -27,8 +27,8 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
 
     elif interval == '1m':
-        start = trade_history['Date'].min()
-        end = trade_history['Date'].max()
+        start = (trade_history['Date'].min().dt.date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        end = trade_history['Date'].max().dt.date.strftime("%Y-%m-%d")
         ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
         ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
 
@@ -55,7 +55,7 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
     
     elif interval == '1m':
         if start_date == '' and end_date == '':
-            start_date = (pd.to_datetime(trade_history['Date'].min())).strftime("%Y-%m-%d")
+            start_date = (pd.to_datetime(trade_history['Date'].min()) - timedelta(150)).strftime("%Y-%m-%d")
             end_date = (pd.to_datetime(trade_history['Date'].max())).strftime("%Y-%m-%d")
 
         elif start_date != '' and end_date == '':
@@ -63,12 +63,13 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
             end_date = (pd.to_datetime(trade_history['Date'].max())).strftime("%Y-%m-%d")
 
         elif start_date == '' and end_date != '':
-            start_date = (pd.to_datetime(trade_history['Date'].min())).strftime("%Y-%m-%d")
+            start_date = (pd.to_datetime(trade_history['Date'].min()) - timedelta(150)).strftime("%Y-%m-%d")
             end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
 
         else:
             start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
             end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
+
 
     frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
     closing_prices = frame['Close']
