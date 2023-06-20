@@ -53,7 +53,7 @@ def preprocess_rh_stock_orders(file, stock_splits_dict = stock_splits_dict):
     return stock_orders_df
 
 
-def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval = '1d'):
+def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval = '1d', export_type = 'Stocks'):
         wb_orders_df = pd.read_csv(file)
         wb_orders_df.rename(columns={'Symbol': 'symbol', 'Side':'side', 'Total Qty':'quantity','Avg Price':'average_price', 
                                      'Filled Time':'date'}, inplace=True)
@@ -68,13 +68,17 @@ def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval =
 
         wb_orders_df = wb_orders_df.iloc[::-1].reset_index(drop=True)
         wb_orders_df['side'] = wb_orders_df['side'].str.lower()
-    
-        for i in range(len(wb_orders_df)):
-            transac_date = wb_orders_df.loc[i, 'date']
-            symbol = wb_orders_df.loc[i, 'symbol']    
-            if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
-                wb_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
-                wb_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
+
+        if export_type == 'Stocks':
+            for i in range(len(wb_orders_df)):
+                transac_date = wb_orders_df.loc[i, 'date']
+                symbol = wb_orders_df.loc[i, 'symbol']    
+                if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
+                    wb_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
+                    wb_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
+
+        if export_type == 'Options':
+            wb_orders_df['symbol'] = wb_orders_df['Name'].str.split(' ').str[0]
 
         wb_orders_df['total'] = wb_orders_df['quantity']*wb_orders_df['average_price']
         return wb_orders_df
@@ -111,7 +115,7 @@ class Stocks:
     def __init__(self, stock_orders_df):
         self.stock_orders_df = stock_orders_df
 
-    def examine_trades(self):
+    def examine_trades(self, export_type = 'Stocks'):
         self.total_gain = 0
         self.total_loss = 0
         self.trades = []
@@ -125,7 +129,10 @@ class Stocks:
 
             side = self.stock_orders_df.loc[i, 'side']
             symbol = self.stock_orders_df.loc[i, 'symbol']
-            date = self.stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
+            if export_type == 'Stocks':
+                date = self.stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
+            elif export_type == 'Options':
+                date = self.stock_orders_df.loc[i, 'date']
             quantity = self.stock_orders_df.loc[i, 'quantity']
             avg_price = self.stock_orders_df.loc[i, 'average_price']
             total = round(self.stock_orders_df.loc[i, 'total'],2)

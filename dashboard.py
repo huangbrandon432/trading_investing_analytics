@@ -157,9 +157,11 @@ class ExamineCharts(param.Parameterized):
     file_input = param.Parameter()
     select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
+    select_interval=pn.widgets.Select(name = 'Select Time Interval', options = ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'])
+    select_export_type=pn.widgets.Select(name = 'Select Export Type', options = ['Stocks', 'Options'])
     data = param.DataFrame()
-    chart = pn.pane.Plotly()
-    chart2 = pn.pane.Plotly()
+    line_chart = pn.pane.Plotly()
+    candlestick_chart = pn.pane.Plotly()
     start_date_input = pn.widgets.TextInput(name='Optional Start Date', placeholder='Enter start date (optional)')
     end_date_input = pn.widgets.TextInput(name='Optional End Date', placeholder='Enter end date (optional)')
 
@@ -167,16 +169,18 @@ class ExamineCharts(param.Parameterized):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
 
 
-    @param.depends("file_input.value", 'select_brokerage.value', watch=True)
+    @param.depends("file_input.value", 'select_brokerage.value', 'select_interval.value', 'select_export_type.value', watch=True)
     def parse_file_input(self):
         value = self.file_input.value
         brokerage = self.select_brokerage.value
+        interval = self.select_interval.value
+        export_type = self.select_export_type.value
         if value and brokerage == 'Robinhood':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_rh_stock_orders(string_io)
         if value and brokerage == 'Webull':
             string_io = io.StringIO(value.decode("utf8"))
-            self.data = af.preprocess_wb_orders(string_io)
+            self.data = af.preprocess_wb_orders(string_io, interval = interval, export_type = export_type)
         if value and brokerage == 'Charles Schwab':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_schwab_orders(string_io)
@@ -188,17 +192,17 @@ class ExamineCharts(param.Parameterized):
         self.select_stock.options = sorted(list(self.data.symbol.unique()))
 
 
-    @param.depends('data', 'select_stock.value', 'start_date_input.value', 'end_date_input.value', watch = True)
+    @param.depends('data', 'select_stock.value', 'start_date_input.value', 'end_date_input.value', 'select_interval.value', 'select_export_type.value', watch=True)
     def plotting(self):
         trades = af.Stocks(self.data)
-        trades.examine_trades()
+        trades.examine_trades(export_type=self.select_export_type.value)
 
         if self.select_stock.value:
-            self.chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                    end_date= self.end_date_input.value)
+            self.line_chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
+                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
 
-            self.chart2.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                    end_date= self.end_date_input.value)
+            self.candlestick_chart.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
+                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
         else:
             print('select stock')
 
@@ -208,13 +212,15 @@ class ExamineCharts(param.Parameterized):
             "## Examine Charts",
             self.select_brokerage,
             self.file_input,
+            self.select_export_type,
             self.select_stock,
+            self.select_interval,
             self.start_date_input,
             self.end_date_input,
             pn.layout.Divider(),
-            self.chart2,
+            self.candlestick_chart,
             pn.Spacer(height = 150),
-            self.chart,
+            self.line_chart,
             name = "Examine Charts"
         )
 
