@@ -1,3 +1,4 @@
+from IPython.display import display
 import panel as pn
 from panel.interact import interact, interactive, fixed, interact_manual
 from panel import widgets
@@ -157,13 +158,13 @@ class ExamineCharts(param.Parameterized):
     file_input = param.Parameter()
     select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
-    select_interval=pn.widgets.Select(name = 'Select Time Interval', options = ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'])
+    select_interval=pn.widgets.Select(name = 'Select Time Interval', options = ['2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'])
     select_export_type=pn.widgets.Select(name = 'Select Export Type', options = ['Stocks', 'Options'])
     data = param.DataFrame()
     line_chart = pn.pane.Plotly()
     candlestick_chart = pn.pane.Plotly()
-    start_date_input = pn.widgets.TextInput(name='Optional Start Date', placeholder='Enter start date (optional)')
-    end_date_input = pn.widgets.TextInput(name='Optional End Date', placeholder='Enter end date (optional)')
+    start_date_input = pn.widgets.TextInput(name='Start Date', placeholder='Enter start date')
+    end_date_input = pn.widgets.TextInput(name='End Date', placeholder='Enter end date')
 
     def __init__(self, **params):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)

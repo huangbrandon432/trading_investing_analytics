@@ -4,6 +4,7 @@ import robin_stocks.robinhood as r
 from IPython.display import Markdown
 import yfinance as yf
 from datetime import date, timedelta, datetime
+from IPython.display import display
 import datapackage
 
 

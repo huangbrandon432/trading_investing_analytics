@@ -1,4 +1,5 @@
 import time
+from IPython.display import display
 import robin_stocks.robinhood as r
 import pandas as pd
 import numpy as np

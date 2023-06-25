@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 from IPython.display import Markdown
+from IPython.display import display
 import numpy as np
 from datetime import date, timedelta
 def printmd(string):
@@ -135,7 +136,6 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
         start = (min_date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         end = pd.to_datetime(trade_history['Date']).max().date().strftime("%Y-%m-%d")
         ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
-        # ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
 
 
     if len(ticker_hist) == 0:
@@ -234,12 +234,13 @@ def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_
 
 
     frame = ticker_hist.loc[start_date:end_date]
+    print(frame)
+
     closing_prices = frame['Close']
     open_prices = frame['Open']
     high_prices = frame['High']
     low_prices = frame['Low']
     volume = frame['Volume']
-    dates = frame['Date']
 
 
     fig = make_subplots(rows=2, cols=1,
@@ -247,14 +248,14 @@ def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_
                     vertical_spacing=0.03, row_heights = [0.8, 0.2])
 
 
-    fig.add_trace(go.Scatter(x = dates, y = closing_prices, mode = 'lines', name = 'Close'), row = 1, col = 1)
+    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'), row = 1, col = 1)
 
 
     if moving_avg == 'yes':
         closing_prices_ma = frame['Close'].rolling(moving_avg_days).mean()
         fig.add_trace(go.Scatter(x = closing_prices_ma.index, y = closing_prices_ma, mode = 'lines', name = str(moving_avg_days)+'D Close Moving Average'), row = 1, col = 1)
 
-    fig.add_trace(go.Bar(x = dates, y = volume, name = 'Volume'), row=2, col=1)
+    fig.add_trace(go.Bar(x = closing_prices.index, y = volume, name = 'Volume'), row=2, col=1)
 
     fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1, row=2, col=1)
     fig.update_yaxes(title_text="Price", row=1, col=1)
@@ -320,10 +321,9 @@ def candlestick_chart(ticker, start = None, end = None, moving_avg = 'yes', movi
     high_prices = frame['High']
     low_prices = frame['Low']
     volume = frame['Volume']
-    dates = frame['Date']
 
     fig2 = go.Figure(data=[go.Candlestick(
-        x=dates,
+        x=closing_prices.index,
         open=open_prices, high=high_prices,
         low=low_prices, close=closing_prices,
         increasing_line_color= 'green', decreasing_line_color= 'red', name = 'Candles'
