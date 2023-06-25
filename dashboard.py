@@ -27,6 +27,9 @@ font-size:16px;
 pn.extension('plotly', raw_css=[raw_css])
 
 
+
+
+#First Tab
 ticker_info_button = pn.widgets.Button(name='Get Ticker Stats and Financials', button_type='primary')
 text = pn.widgets.TextInput(name = 'Ticker', value='TSLA')
 def b(event):
@@ -54,7 +57,7 @@ get_stock_info = pn.Column(text, ticker_info_button, pn.Spacer(height = 5), swag
 
 
 
-
+#Second Tab
 class Analyze_trades(param.Parameterized):
 
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
@@ -122,17 +125,21 @@ class Analyze_trades(param.Parameterized):
 analyze_trades_view = Analyze_trades().view()
 
 
-
+#Third Tab
 class ExamineCharts(param.Parameterized):
 
     file_input = param.Parameter()
+
     select_stock=pn.widgets.Select(name = 'Select Stock', options = [])
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
     select_interval=pn.widgets.Select(name = 'Select Time Interval', options = ['2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'])
-    select_export_type=pn.widgets.Select(name = 'Select Export Type', options = ['Stocks', 'Options'])
+    select_export_type=pn.widgets.Select(name = 'Select Export Type', options = ['Stock', 'Option'])
+
     data = param.DataFrame()
+
     line_chart = pn.pane.Plotly()
     candlestick_chart = pn.pane.Plotly()
+
     start_date_input = pn.widgets.TextInput(name='Start Date', placeholder='Enter start date')
     end_date_input = pn.widgets.TextInput(name='End Date', placeholder='Enter end date')
 
@@ -146,6 +153,7 @@ class ExamineCharts(param.Parameterized):
         brokerage = self.select_brokerage.value
         interval = self.select_interval.value
         export_type = self.select_export_type.value
+
         if value and brokerage == 'Robinhood':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_rh_stock_orders(string_io)
@@ -170,10 +178,10 @@ class ExamineCharts(param.Parameterized):
 
         if self.select_stock.value:
             self.candlestick_chart.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
+                                                    end_date= self.end_date_input.value, interval = self.select_interval.value, instrument=self.select_export_type.value)
             
             self.line_chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
+                                                    end_date= self.end_date_input.value, interval = self.select_interval.value, instrument=self.select_export_type.value)
 
         else:
             print('select stock')
@@ -200,5 +208,7 @@ examine_charts_view = ExamineCharts().view()
 
 
 
+
+#Putting them all together
 tabs = pn.Tabs(get_stock_info, analyze_trades_view, examine_charts_view)
 tabs.show()

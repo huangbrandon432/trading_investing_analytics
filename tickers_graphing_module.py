@@ -14,12 +14,10 @@ def printmd(string):
 
 
 
-
 def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d', instrument = 'Stock'):
 
     trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
     trade_history = trade_history[(trade_history['Date'] >= start_date) & (trade_history['Date'] <= end_date)].reset_index(drop=True)
-    display(trade_history)
     if crypto == 'yes':
         ticker += '-USD'
 
@@ -37,9 +35,7 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
         ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
         ticker_hist['Date'] = pd.to_datetime(ticker_hist['Date']).dt.floor('T').dt.tz_localize(None)
 
-    if len(ticker_hist) == 0:
-        return
-
+    
     if interval == '1d':
         if start_date == '' and end_date == '':
             start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
@@ -57,6 +53,10 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
             start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
             end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
     
+
+    if len(ticker_hist) == 0:
+        return
+
 
     frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
 
@@ -83,12 +83,11 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
     for i in range(len(trade_history)):
         trade_date = trade_history.loc[i, 'Date']
-        print(trade_date)
+
         if instrument == 'Stock':
             price = trade_history.loc[i, 'Avg_Price']
         elif instrument == 'Option':
             price = ticker_hist[ticker_hist['Date'] == trade_date]['High'].item()
-            print(price)
         quantity = trade_history.loc[i, 'Quantity']
         total = trade_history.loc[i, 'Total']
         side = trade_history.loc[i, 'Side']
@@ -120,9 +119,11 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
 
 
-def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d'):
+def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d', instrument = 'Stock'):
 
     trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
+    trade_history = trade_history[(trade_history['Date'] >= start_date) & (trade_history['Date'] <= end_date)].reset_index(drop=True)
+
     if crypto == 'yes':
         ticker += '-USD'
 
@@ -131,15 +132,15 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
         ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index()
 
 
-    elif interval == '1m':
-        min_date = pd.to_datetime(trade_history['Date']).min().date()
-        start = (min_date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        end = pd.to_datetime(trade_history['Date']).max().date().strftime("%Y-%m-%d")
+    elif interval == '2m':
+
+        start = start_date
+
+        end = end_date
+
         ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
+        ticker_hist['Date'] = pd.to_datetime(ticker_hist['Date']).dt.floor('T').dt.tz_localize(None)
 
-
-    if len(ticker_hist) == 0:
-        return
 
     if interval == '1d':
         if start_date == '' and end_date == '':
@@ -158,22 +159,9 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
             start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
             end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
     
-    elif interval == '1m':
-        if start_date == '' and end_date == '':
-            start_date = (pd.to_datetime(trade_history['Date'].min())).strftime("%Y-%m-%d")
-            end_date = (pd.to_datetime(trade_history['Date'].max())).strftime("%Y-%m-%d")
-
-        elif start_date != '' and end_date == '':
-            start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-            end_date = (pd.to_datetime(trade_history['Date'].max())).strftime("%Y-%m-%d")
-
-        elif start_date == '' and end_date != '':
-            start_date = (pd.to_datetime(trade_history['Date'].min())).strftime("%Y-%m-%d")
-            end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
-
-        else:
-            start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
-            end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
+    
+    if len(ticker_hist) == 0:
+        return
 
     frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
     closing_prices = frame['Close']
@@ -189,7 +177,11 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
 
     for i in range(len(trade_history)):
         trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
+        if instrument == 'Stock':
+            price = trade_history.loc[i, 'Avg_Price']
+        elif instrument == 'Option':
+            price = ticker_hist[ticker_hist['Date'] == trade_date]['Close'].item()
+
         quantity = trade_history.loc[i, 'Quantity']
         total = trade_history.loc[i, 'Total']
         side = trade_history.loc[i, 'Side']
