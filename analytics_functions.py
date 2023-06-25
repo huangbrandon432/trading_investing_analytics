@@ -426,6 +426,8 @@ def check_if_in_sp500(symbol = ''):
 
 
 
+
+#these functions seem slightly useful, so will keep and not deprecate. 
 def filter_stocks_by_movement(watchlist_names = [], period = '1mo', point_of_reference_days = -10, return_threshold = 0.1, show_yesterday = 'no'):
     #valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
     printmd(f'Past {point_of_reference_days*-1} days')
