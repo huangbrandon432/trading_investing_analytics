@@ -61,9 +61,9 @@ def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval =
 
         date_format = '%m/%d/%Y %H:%M:%S %Z'
         if interval == '1d':
-            wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).date())
-        elif interval == '1m':
-            wb_orders_df['date'] = wb_orders_df['date'].apply(lambda x: datetime.strptime(x, date_format).strftime('%m/%d/%Y %H:%M'))
+            wb_orders_df['date'] = pd.to_datetime(wb_orders_df['date']).dt.floor('D').dt.tz_localize(None)
+        elif interval == '2m':
+            wb_orders_df['date'] = pd.to_datetime(wb_orders_df['date']).dt.floor('T').dt.tz_localize(None).round('2T')
 
 
         wb_orders_df = wb_orders_df.iloc[::-1].reset_index(drop=True)
@@ -81,6 +81,7 @@ def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval =
             wb_orders_df['symbol'] = wb_orders_df['Name'].str.split(' ').str[0]
 
         wb_orders_df['total'] = wb_orders_df['quantity']*wb_orders_df['average_price']
+        display(wb_orders_df)
         return wb_orders_df
     
 
@@ -130,7 +131,7 @@ class Stocks:
             side = self.stock_orders_df.loc[i, 'side']
             symbol = self.stock_orders_df.loc[i, 'symbol']
             if export_type == 'Stocks':
-                date = self.stock_orders_df.loc[i, 'date'].strftime('%Y-%m-%d')
+                date = self.stock_orders_df.loc[i, 'date']
             elif export_type == 'Options':
                 date = self.stock_orders_df.loc[i, 'date']
             quantity = self.stock_orders_df.loc[i, 'quantity']
@@ -153,7 +154,6 @@ class Stocks:
                 elif symbol+'_avgprice' in trading_dict and trading_dict[symbol+'_quantity'] < 0:
                     
                     gain = round(- (avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
-                    print(symbol, gain)
                     perc_gain = round(-(avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
 
                     if gain >= 0:
@@ -170,7 +170,6 @@ class Stocks:
                     net_gain_loss = round(self.total_gain + self.total_loss,2)
                     cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
                     cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-                    print(symbol, cur_quantity, cur_avg_price)
 
                     self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss, ''])
 
@@ -198,7 +197,6 @@ class Stocks:
 
                     gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity,2)
                     
-                    print(symbol, gain)
                     perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
 
                     if gain >= 0:
@@ -247,7 +245,6 @@ class Stocks:
 
                 cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
                 cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-                print(symbol, cur_quantity, cur_avg_price)
                 self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss, ''])
 
 

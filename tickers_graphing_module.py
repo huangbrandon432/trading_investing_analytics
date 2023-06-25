@@ -14,10 +14,11 @@ def printmd(string):
 
 
 
-def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d'):
+def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d', instrument = 'Stock'):
 
     trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-    print(trade_history['Date'])
+    trade_history = trade_history[(trade_history['Date'] >= start_date) & (trade_history['Date'] <= end_date)].reset_index(drop=True)
+    display(trade_history)
     if crypto == 'yes':
         ticker += '-USD'
 
@@ -26,14 +27,14 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
         ticker_hist = ticker_obj.history(period = 'max', interval = interval, debug=False).reset_index()
 
 
-    elif interval == '1m':
-        min_date = pd.to_datetime(trade_history['Date']).min().date()
-        start = (min_date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        end = pd.to_datetime(trade_history['Date']).max().date().strftime("%Y-%m-%d")
-        ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
-        print(ticker_hist['Date'])
-        # ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
+    elif interval == '2m':
 
+        start = start_date
+
+        end = end_date
+
+        ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
+        ticker_hist['Date'] = pd.to_datetime(ticker_hist['Date']).dt.floor('T').dt.tz_localize(None)
 
     if len(ticker_hist) == 0:
         return
@@ -42,7 +43,7 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
         if start_date == '' and end_date == '':
             start_date = (pd.to_datetime(trade_history.loc[0, 'Date']) - timedelta(150)).strftime("%Y-%m-%d")
             end_date = date.today().strftime("%Y-%m-%d")
-
+            
         elif start_date != '' and end_date == '':
             start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
             end_date = date.today().strftime("%Y-%m-%d")
@@ -55,35 +56,21 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
             start_date = pd.to_datetime(start_date).strftime("%Y-%m-%d")
             end_date = pd.to_datetime(end_date).strftime("%Y-%m-%d")
     
-    elif interval == '1m':
-        if start_date == '' and end_date == '':
-            start_date = (pd.to_datetime(trade_history['Date'].min()).date() - timedelta(150)).strftime("%Y-%m-%d")
-            end_date = (pd.to_datetime(trade_history['Date'].max())).date().strftime("%Y-%m-%d")
-
-        elif start_date != '' and end_date == '':
-            start_date = pd.to_datetime(start_date).date().strftime("%Y-%m-%d")
-            end_date = (pd.to_datetime(trade_history['Date'].max())).date().strftime("%Y-%m-%d")
-
-        elif start_date == '' and end_date != '':
-            start_date = (pd.to_datetime(trade_history['Date'].min()).date() - timedelta(150)).strftime("%Y-%m-%d")
-            end_date = pd.to_datetime(end_date).date().strftime("%Y-%m-%d")
-
-        else:
-            start_date = pd.to_datetime(start_date).date().strftime("%Y-%m-%d")
-            end_date = pd.to_datetime(end_date).date().strftime("%Y-%m-%d")
-
 
     frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
+
+
     closing_prices = frame['Close']
     open_prices = frame['Open']
     high_prices = frame['High']
     low_prices = frame['Low']
     volume = frame['Volume']
+    dates = frame['Date']
 
 
 
     fig = go.Figure(data=[go.Candlestick(
-        x=closing_prices.index,
+        x=dates,
         open=open_prices, high=high_prices,
         low=low_prices, close=closing_prices,
         increasing_line_color= 'green', decreasing_line_color= 'red'
@@ -95,7 +82,12 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 
     for i in range(len(trade_history)):
         trade_date = trade_history.loc[i, 'Date']
-        price = trade_history.loc[i, 'Avg_Price']
+        print(trade_date)
+        if instrument == 'Stock':
+            price = trade_history.loc[i, 'Avg_Price']
+        elif instrument == 'Option':
+            price = ticker_hist[ticker_hist['Date'] == trade_date]['High'].item()
+            print(price)
         quantity = trade_history.loc[i, 'Quantity']
         total = trade_history.loc[i, 'Total']
         side = trade_history.loc[i, 'Side']
@@ -130,7 +122,6 @@ def plot_buysell_points_candlestick(ticker, tradesdf, crypto = 'no', start_date 
 def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', end_date = '', interval = '1d'):
 
     trade_history = tradesdf[tradesdf['Symbol'] == ticker].reset_index(drop=True)
-    print(trade_history['Date'])
     if crypto == 'yes':
         ticker += '-USD'
 
@@ -141,11 +132,9 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
 
     elif interval == '1m':
         min_date = pd.to_datetime(trade_history['Date']).min().date()
-        print(min_date)
         start = (min_date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         end = pd.to_datetime(trade_history['Date']).max().date().strftime("%Y-%m-%d")
         ticker_hist = ticker_obj.history(start = start, end = end, interval = interval, debug=False).reset_index().rename(columns={'Datetime': 'Date'})
-        print(ticker_hist['Date'])
         # ticker_hist['Date'] = ticker_hist['Date'].dt.tz_localize(None)
 
 
@@ -188,10 +177,11 @@ def plot_buysell_points_line(ticker, tradesdf, crypto = 'no', start_date = '', e
 
     frame = ticker_hist[(ticker_hist['Date'] >= start_date) & (ticker_hist['Date'] <= end_date)].reset_index(drop=True)
     closing_prices = frame['Close']
+    dates = frame['Date']
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'))
+    fig.add_trace(go.Scatter(x = dates, y = closing_prices, mode = 'lines', name = 'Close'))
 
     fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1)
     fig.update_yaxes(title_text="Price")
@@ -249,6 +239,7 @@ def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_
     high_prices = frame['High']
     low_prices = frame['Low']
     volume = frame['Volume']
+    dates = frame['Date']
 
 
     fig = make_subplots(rows=2, cols=1,
@@ -256,14 +247,14 @@ def line_chart(ticker, start = None, end = None, moving_avg = 'yes', moving_avg_
                     vertical_spacing=0.03, row_heights = [0.8, 0.2])
 
 
-    fig.add_trace(go.Scatter(x = closing_prices.index, y = closing_prices, mode = 'lines', name = 'Close'), row = 1, col = 1)
+    fig.add_trace(go.Scatter(x = dates, y = closing_prices, mode = 'lines', name = 'Close'), row = 1, col = 1)
 
 
     if moving_avg == 'yes':
         closing_prices_ma = frame['Close'].rolling(moving_avg_days).mean()
         fig.add_trace(go.Scatter(x = closing_prices_ma.index, y = closing_prices_ma, mode = 'lines', name = str(moving_avg_days)+'D Close Moving Average'), row = 1, col = 1)
 
-    fig.add_trace(go.Bar(x = closing_prices.index, y = volume, name = 'Volume'), row=2, col=1)
+    fig.add_trace(go.Bar(x = dates, y = volume, name = 'Volume'), row=2, col=1)
 
     fig.update_xaxes(rangeslider_visible = True, rangeslider_thickness = 0.1, row=2, col=1)
     fig.update_yaxes(title_text="Price", row=1, col=1)
@@ -329,9 +320,10 @@ def candlestick_chart(ticker, start = None, end = None, moving_avg = 'yes', movi
     high_prices = frame['High']
     low_prices = frame['Low']
     volume = frame['Volume']
+    dates = frame['Date']
 
     fig2 = go.Figure(data=[go.Candlestick(
-        x=closing_prices.index,
+        x=dates,
         open=open_prices, high=high_prices,
         low=low_prices, close=closing_prices,
         increasing_line_color= 'green', decreasing_line_color= 'red', name = 'Candles'

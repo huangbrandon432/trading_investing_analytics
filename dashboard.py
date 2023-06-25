@@ -198,11 +198,12 @@ class ExamineCharts(param.Parameterized):
         trades.examine_trades(export_type=self.select_export_type.value)
 
         if self.select_stock.value:
+            self.candlestick_chart.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
+                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
+            
             self.line_chart.object = tg.plot_buysell_points_line(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
                                                     end_date= self.end_date_input.value, interval = self.select_interval.value)
 
-            self.candlestick_chart.object = tg.plot_buysell_points_candlestick(self.select_stock.value, tradesdf = trades.trades_df, start_date = self.start_date_input.value,
-                                                    end_date= self.end_date_input.value, interval = self.select_interval.value)
         else:
             print('select stock')
 
