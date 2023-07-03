@@ -267,7 +267,7 @@ class Stocks:
                 self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss])
 
 
-        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss', 'Free/Acquired Stock'])
+        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss'])
 
 
 class Options:
@@ -378,7 +378,7 @@ class Options:
 
 
 
-        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss', 'Free/Acquired Stock'])
+        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss'])
 
 
 

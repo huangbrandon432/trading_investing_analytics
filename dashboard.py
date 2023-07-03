@@ -67,8 +67,7 @@ class Trades_Stats(param.Parameterized):
 
     def __init__(self, **params):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
-        self.df_pane = pn.pane.DataFrame(width=1000, max_rows = 10)
-        self.trades_df_pane = pn.pane.DataFrame(width=1000, max_rows = 10)
+        self.trades_df_pane = pn.widgets.DataFrame(width=1500, height = 1500)
         self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
         self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
         self.wins = pn.indicators.Number(name='Wins', format='{value}', font_size = '30pt')
@@ -93,13 +92,9 @@ class Trades_Stats(param.Parameterized):
         if value and brokerage == 'Charles Schwab':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_schwab_orders(string_io)
-        else:
-            print("error")
 
     @param.depends('data', watch=True)
     def get_df(self):
-        self.df_pane.object = self.data
-
         if self.select_instrument.value == 'Options':
             trades = af.Options(self.data)
         elif self.select_instrument.value == 'Stocks':
@@ -107,7 +102,7 @@ class Trades_Stats(param.Parameterized):
 
         trades.examine_trades()
 
-        self.trades_df_pane.object = trades.trades_df
+        self.trades_df_pane.value = trades.trades_df
         self.total_gain.value = round(trades.total_gain)
         self.total_loss.value = round(trades.total_loss)
         self.wins.value = trades.win_count
@@ -134,8 +129,7 @@ class Trades_Stats(param.Parameterized):
             self.profit_factor,
             self.max_trade_loss,
             self.max_trade_gain,
-            self.df_pane,
-            pn.Spacer(height = 500),
+            pn.Spacer(height = 50),
             self.trades_df_pane,
             name = "Trades Stats"
         )
@@ -181,8 +175,6 @@ class ExamineCharts(param.Parameterized):
         if value and brokerage == 'Charles Schwab':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_schwab_orders(string_io)
-        else:
-            print("error")
 
     @param.depends('data', watch = True)
     def refresh_symbols(self):
