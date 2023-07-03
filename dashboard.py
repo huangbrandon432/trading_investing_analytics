@@ -58,24 +58,29 @@ get_stock_info = pn.Column(text, ticker_info_button, pn.Spacer(height = 5), swag
 
 
 #Second Tab
-class Analyze_trades(param.Parameterized):
+class Trades_Stats(param.Parameterized):
 
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
+    select_instrument=pn.widgets.Select(name = 'Select Instrument', options = ['Options', 'Stocks'])
     file_input = param.Parameter()
     data = param.DataFrame()
 
     def __init__(self, **params):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
         self.df_pane = pn.pane.DataFrame(width=1000, max_rows = 10)
-        self.df_pane2 = pn.pane.DataFrame(width=1000, max_rows = 10)
+        self.trades_df_pane = pn.pane.DataFrame(width=1000, max_rows = 10)
         self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
         self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
         self.wins = pn.indicators.Number(name='Wins', format='{value}', font_size = '30pt')
         self.losses = pn.indicators.Number(name='Losses', format='{value}', font_size = '30pt')
         self.win_loss_ratio = pn.indicators.Number(name='Win Loss Ratio', format='{value}', font_size = '30pt')
+        self.win_rate = pn.indicators.Number(name='Win Rate', format='{value}', font_size = '30pt')
+        self.profit_factor = pn.indicators.Number(name='Profit Factor', format='{value}', font_size = '30pt')
+        self.max_trade_loss = pn.indicators.Number(name='Max Trade Loss', format='${value}', font_size = '30pt')
+        self.max_trade_gain = pn.indicators.Number(name='Max Trade Gain', format='${value}', font_size = '30pt')
 
 
-    @param.depends("file_input.value", 'select_brokerage.value', watch=True)
+    @param.depends("file_input.value", 'select_brokerage.value', 'select_instrument.value', watch=True)
     def parse_file_input(self):
         value = self.file_input.value
         brokerage = self.select_brokerage.value
@@ -84,7 +89,7 @@ class Analyze_trades(param.Parameterized):
             self.data = af.preprocess_rh_stock_orders(string_io)
         if value and brokerage == 'Webull':
             string_io = io.StringIO(value.decode("utf8"))
-            self.data = af.preprocess_wb_orders(string_io)
+            self.data = af.preprocess_wb_orders_stats(string_io, instrument_type = self.select_instrument.value)
         if value and brokerage == 'Charles Schwab':
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_schwab_orders(string_io)
@@ -95,34 +100,47 @@ class Analyze_trades(param.Parameterized):
     def get_df(self):
         self.df_pane.object = self.data
 
-        trades = af.Stocks(self.data)
+        if self.select_instrument.value == 'Options':
+            trades = af.Options(self.data)
+        elif self.select_instrument.value == 'Stocks':
+            trades = af.Stocks(self.data)
+
         trades.examine_trades()
 
-        self.df_pane2.object = trades.trades_df
+        self.trades_df_pane.object = trades.trades_df
         self.total_gain.value = round(trades.total_gain)
         self.total_loss.value = round(trades.total_loss)
         self.wins.value = trades.win_count
         self.losses.value = trades.loss_count
         self.win_loss_ratio.value = round(trades.win_count/trades.loss_count, 2)
+        self.win_rate.value = round(trades.win_count/(trades.win_count + trades.loss_count), 2)
+        self.profit_factor.value = round(trades.total_gain/trades.total_loss, 2)*-1
+        self.max_trade_loss.value = round(trades.trades_df['Gain'].min())
+        self.max_trade_gain.value = round(trades.trades_df['Gain'].max())
 
     def view(self):
         return pn.Column(
             "## Upload and process data",
             self.select_brokerage,
+            self.select_instrument,
             self.file_input,
             pn.layout.Divider(),
             self.total_gain,
             self.total_loss,
             self.wins,
             self.losses,
+            self.win_rate,
             self.win_loss_ratio,
+            self.profit_factor,
+            self.max_trade_loss,
+            self.max_trade_gain,
             self.df_pane,
             pn.Spacer(height = 500),
-            self.df_pane2,
-            name = "Analyze Trades"
+            self.trades_df_pane,
+            name = "Trades Stats"
         )
 
-analyze_trades_view = Analyze_trades().view()
+trades_stats_view = Trades_Stats().view()
 
 
 #Third Tab
@@ -210,5 +228,5 @@ examine_charts_view = ExamineCharts().view()
 
 
 #Putting them all together
-tabs = pn.Tabs(get_stock_info, analyze_trades_view, examine_charts_view)
+tabs = pn.Tabs(get_stock_info, trades_stats_view, examine_charts_view)
 tabs.show()
