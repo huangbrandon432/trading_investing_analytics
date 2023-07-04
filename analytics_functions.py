@@ -92,7 +92,7 @@ def preprocess_wb_orders(file, stock_splits_dict = stock_splits_dict, interval =
 def preprocess_wb_orders_stats(file, stock_splits_dict = stock_splits_dict, instrument_type = 'Stock'):
         wb_orders_df = pd.read_csv(file)
         wb_orders_df.rename(columns={'Symbol': 'symbol', 'Side':'side', 'Total Qty':'quantity','Avg Price':'average_price', 
-                                     'Filled Time':'date'}, inplace=True)
+                                     'Filled Time':'date', 'Name':'name'}, inplace=True)
         wb_orders_df = wb_orders_df[wb_orders_df['Status'] == 'Filled'].copy()
         
         wb_orders_df['date'] = pd.to_datetime(wb_orders_df['date']).dt.tz_localize(None)
@@ -108,7 +108,9 @@ def preprocess_wb_orders_stats(file, stock_splits_dict = stock_splits_dict, inst
                 if symbol in stock_splits_dict and transac_date < pd.to_datetime(stock_splits_dict[symbol]['split_date']):
                     wb_orders_df.loc[i, 'average_price'] /= stock_splits_dict[symbol]['factor']
                     wb_orders_df.loc[i, 'quantity'] *= stock_splits_dict[symbol]['factor']
-
+        
+        if instrument_type == 'Option':
+            wb_orders_df['symbol'] = wb_orders_df['name'].str.split(' ').str[0]
         
         wb_orders_df['total'] = wb_orders_df['quantity']*wb_orders_df['average_price']
         return wb_orders_df
@@ -287,6 +289,7 @@ class Options:
         for i in range(len(self.options_orders_df)):
 
             side = self.options_orders_df.loc[i, 'side']
+            name = self.options_orders_df.loc[i, 'name']
             symbol = self.options_orders_df.loc[i, 'symbol']
             date = self.options_orders_df.loc[i, 'date']
             quantity = self.options_orders_df.loc[i, 'quantity']
@@ -295,21 +298,21 @@ class Options:
 
             if side == 'buy':
 
-                if symbol+'_avgprice' in trading_dict and trading_dict[symbol+'_quantity'] > 0:
-                    cur_total = trading_dict[symbol+'_quantity']*trading_dict[symbol+'_avgprice']
+                if name+'_avgprice' in trading_dict and trading_dict[name+'_quantity'] > 0:
+                    cur_total = trading_dict[name+'_quantity']*trading_dict[name+'_avgprice']
                     new_total = cur_total + quantity * avg_price
-                    trading_dict[symbol+'_quantity'] += quantity
-                    trading_dict[symbol+'_avgprice'] = new_total/trading_dict[symbol+'_quantity']
+                    trading_dict[name+'_quantity'] += quantity
+                    trading_dict[name+'_avgprice'] = new_total/trading_dict[name+'_quantity']
 
-                    cur_quantity = round(trading_dict[symbol+'_quantity'],2)
-                    cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
+                    cur_quantity = round(trading_dict[name+'_quantity'],2)
+                    cur_avg_price = round(trading_dict[name+'_avgprice'],2)
 
-                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss])
+                    self.trades.append([side, name, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss])
                 
-                elif symbol+'_avgprice' in trading_dict and trading_dict[symbol+'_quantity'] < 0:
+                elif name+'_avgprice' in trading_dict and trading_dict[name+'_quantity'] < 0:
                     
-                    gain = round(-(avg_price - trading_dict[symbol+'_avgprice']) * quantity*100,2)
-                    perc_gain = round(-(avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
+                    gain = round(-(avg_price - trading_dict[name+'_avgprice']) * quantity*100,2)
+                    perc_gain = round(-(avg_price - trading_dict[name+'_avgprice'])/trading_dict[name+'_avgprice']*100,2)
 
                     if gain >= 0:
                         self.total_gain += gain
@@ -320,39 +323,39 @@ class Options:
                         self.loss_count += 1
 
 
-                    trading_dict[symbol+'_quantity'] += quantity
+                    trading_dict[name+'_quantity'] += quantity
 
                     net_gain_loss = round(self.total_gain + self.total_loss,2)
-                    cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
-                    cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+                    cur_avg_price = round(trading_dict[name+'_avgprice'],2)
+                    cur_quantity = round(trading_dict[name+'_quantity'],2)
 
-                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss])
-
-
-
-                    #if holding = 0, pop symbol avgprice and quantity
-                    if trading_dict[symbol+'_quantity'] == 0:
-                        trading_dict.pop(symbol+'_avgprice')
-                        trading_dict.pop(symbol+'_quantity')
-
-                elif symbol+'_avgprice' not in trading_dict:
-                    trading_dict[symbol+'_avgprice'] = avg_price
-                    trading_dict[symbol+'_quantity'] = quantity
+                    self.trades.append([side, name, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss])
 
 
-                    cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
-                    cur_quantity = round(trading_dict[symbol+'_quantity'],2)
 
-                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss])
+                    #if holding = 0, pop name avgprice and quantity
+                    if trading_dict[name+'_quantity'] == 0:
+                        trading_dict.pop(name+'_avgprice')
+                        trading_dict.pop(name+'_quantity')
+
+                elif name+'_avgprice' not in trading_dict:
+                    trading_dict[name+'_avgprice'] = avg_price
+                    trading_dict[name+'_quantity'] = quantity
+
+
+                    cur_avg_price = round(trading_dict[name+'_avgprice'],2)
+                    cur_quantity = round(trading_dict[name+'_quantity'],2)
+
+                    self.trades.append([side, name, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, 0, str(0) + '%', net_gain_loss])
 
             #if sell
             if side == 'sell':
 
-                if symbol+'_avgprice' in trading_dict and quantity > 0:
+                if name+'_avgprice' in trading_dict and quantity > 0:
 
-                    gain = round((avg_price - trading_dict[symbol+'_avgprice']) * quantity*100,2)
+                    gain = round((avg_price - trading_dict[name+'_avgprice']) * quantity*100,2)
                     
-                    perc_gain = round((avg_price - trading_dict[symbol+'_avgprice'])/trading_dict[symbol+'_avgprice']*100,2)
+                    perc_gain = round((avg_price - trading_dict[name+'_avgprice'])/trading_dict[name+'_avgprice']*100,2)
 
                     if gain >= 0:
                         self.total_gain += gain
@@ -363,22 +366,22 @@ class Options:
                         self.total_loss += gain
                         self.loss_count += 1
 
-                    trading_dict[symbol+'_quantity'] -= quantity
+                    trading_dict[name+'_quantity'] -= quantity
 
                     net_gain_loss = round(self.total_gain + self.total_loss,2)
-                    cur_avg_price = round(trading_dict[symbol+'_avgprice'],2)
-                    cur_quantity = round(trading_dict[symbol+'_quantity'],2)
+                    cur_avg_price = round(trading_dict[name+'_avgprice'],2)
+                    cur_quantity = round(trading_dict[name+'_quantity'],2)
 
-                    self.trades.append([side, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss])
+                    self.trades.append([side, name, symbol, date, round(quantity, 2), round(avg_price, 2), cur_quantity, cur_avg_price, total, gain, str(perc_gain) + '%', net_gain_loss])
 
-                    #if holding = 0, pop symbol avgprice and quantity
-                    if trading_dict[symbol+'_quantity'] == 0:
-                        trading_dict.pop(symbol+'_avgprice')
-                        trading_dict.pop(symbol+'_quantity')
+                    #if holding = 0, pop name avgprice and quantity
+                    if trading_dict[name+'_quantity'] == 0:
+                        trading_dict.pop(name+'_avgprice')
+                        trading_dict.pop(name+'_quantity')
 
 
 
-        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss'])
+        self.trades_df = pd.DataFrame(self.trades, columns = ['Side', 'Name', 'Symbol', 'Date', 'Quantity', 'Avg_Price', 'Cur Quantity', 'Cur_Avg_Cost', 'Total', 'Gain', '% Gain', 'Net Gain/Loss'])
 
 
 

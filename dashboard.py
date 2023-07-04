@@ -61,13 +61,13 @@ get_stock_info = pn.Column(text, ticker_info_button, pn.Spacer(height = 5), swag
 class Trades_Stats(param.Parameterized):
 
     select_brokerage=pn.widgets.Select(name = 'Select Brokerage', options = ['Webull', 'Robinhood', 'Charles Schwab'])
-    select_instrument=pn.widgets.Select(name = 'Select Instrument', options = ['Options', 'Stocks'])
+    select_instrument=pn.widgets.Select(name = 'Select Instrument', options = ['Option', 'Stock'])
+    select_symbol_to_filter=pn.widgets.Select(name = 'Select Symbol', options = [])
     file_input = param.Parameter()
     data = param.DataFrame()
 
     def __init__(self, **params):
         super().__init__(file_input=pn.widgets.FileInput(accept='.csv,.xlsx,.xls'), **params)
-        self.trades_df_pane = pn.widgets.DataFrame(width=1500, height = 1500)
         self.total_gain = pn.indicators.Number(name='Total Realized Gain', format='${value}', font_size = '30pt')
         self.total_loss = pn.indicators.Number(name='Total Realized Loss', format='${value}', font_size = '30pt')
         self.wins = pn.indicators.Number(name='Wins', format='{value}', font_size = '30pt')
@@ -77,6 +77,10 @@ class Trades_Stats(param.Parameterized):
         self.profit_factor = pn.indicators.Number(name='Profit Factor', format='{value}', font_size = '30pt')
         self.max_trade_loss = pn.indicators.Number(name='Max Trade Loss', format='${value}', font_size = '30pt')
         self.max_trade_gain = pn.indicators.Number(name='Max Trade Gain', format='${value}', font_size = '30pt')
+        self.trades_df_pane = pn.widgets.DataFrame(name = 'Orders', width=1200, height = 1000)
+        self.top_trades_df_pane = pn.widgets.DataFrame(name = 'Top Trades', width=1200, height = 400)
+        self.bottom_trades_df_pane = pn.widgets.DataFrame(name = 'Bottom Trades', width=1200, height = 400)
+        self.filtered_trades_df_pane = pn.widgets.DataFrame(name = 'Filtered Trades', width=1200, height = 400)
 
 
     @param.depends("file_input.value", 'select_brokerage.value', 'select_instrument.value', watch=True)
@@ -93,16 +97,19 @@ class Trades_Stats(param.Parameterized):
             string_io = io.StringIO(value.decode("utf8"))
             self.data = af.preprocess_schwab_orders(string_io)
 
-    @param.depends('data', watch=True)
+    @param.depends('data', watch = True)
+    def refresh_filter_symbols(self):
+        self.select_symbol_to_filter.options = sorted(list(self.data['symbol'].unique()))
+
+    @param.depends('data', 'select_instrument.value', 'select_symbol_to_filter.value', watch=True)
     def get_df(self):
-        if self.select_instrument.value == 'Options':
+        if self.select_instrument.value == 'Option':
             trades = af.Options(self.data)
-        elif self.select_instrument.value == 'Stocks':
+        elif self.select_instrument.value == 'Stock':
             trades = af.Stocks(self.data)
 
         trades.examine_trades()
-
-        self.trades_df_pane.value = trades.trades_df
+        trades.trades_df.index.name = 'Trade #'
         self.total_gain.value = round(trades.total_gain)
         self.total_loss.value = round(trades.total_loss)
         self.wins.value = trades.win_count
@@ -112,6 +119,12 @@ class Trades_Stats(param.Parameterized):
         self.profit_factor.value = round(trades.total_gain/trades.total_loss, 2)*-1
         self.max_trade_loss.value = round(trades.trades_df['Gain'].min())
         self.max_trade_gain.value = round(trades.trades_df['Gain'].max())
+        self.trades_df_pane.value = trades.trades_df
+        self.top_trades_df_pane.value = trades.trades_df[trades.trades_df['Gain'] > 0].sort_values(by = 'Gain', ascending = False).head(20)
+        self.bottom_trades_df_pane.value = trades.trades_df[trades.trades_df['Gain'] < 0].sort_values(by = 'Gain', ascending = True).head(20)
+        self.filtered_trades_df_pane.value = trades.trades_df[trades.trades_df['Symbol'] == self.select_symbol_to_filter.value]
+
+
 
     def view(self):
         return pn.Column(
@@ -130,11 +143,23 @@ class Trades_Stats(param.Parameterized):
             self.max_trade_loss,
             self.max_trade_gain,
             pn.Spacer(height = 50),
+            "## Trades",
             self.trades_df_pane,
+            pn.Spacer(height = 30),
+            "## Top Performing Trades",
+            self.top_trades_df_pane,
+            pn.Spacer(height = 30),
+            "## Bottom Performing Trades",
+            self.bottom_trades_df_pane,
+            pn.Spacer(height = 30),
+            "## Filtered Trades",
+            self.select_symbol_to_filter,
+            self.filtered_trades_df_pane,
             name = "Trades Stats"
         )
 
 trades_stats_view = Trades_Stats().view()
+
 
 
 #Third Tab
